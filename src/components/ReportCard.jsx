@@ -1,5 +1,4 @@
 import { Card } from '../components/ui/card';
-import { Badge } from '../components/ui/badge';
 import { Clock, CheckCircle2, Wrench, AlertCircle, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
@@ -47,6 +46,10 @@ export function ReportCard({ report, onClick }) {
         <div className="flex items-center gap-2">
           <div className={`p-2 rounded-lg ${getTypeColor()}`}>
             {getTypeIcon()}
+          </div>
+          <div>
+            <p className="font-semibold text-sm">{getTypeLabel()}</p>
+            <p className="text-xs text-muted-foreground">{report.timestamp}</p>
           </div>
           <div>
             <h3 className="font-medium">{getTypeLabel()}</h3>
