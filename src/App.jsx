@@ -1,10 +1,9 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
-import Register from './pages/Register'; // Importeer de nieuwe registratiepagina
 
-// Zodra we de Login pagina maken, kun je deze uit de comments halen:
-// import Login from './pages/Login'; 
+import Register from './pages/Register';
+import Login from './pages/Login';
 
 export default function App() {
   return (
@@ -22,6 +21,7 @@ export default function App() {
 
           {/* Besloten routes (hier voegen we later een beveiliging aan toe) */}
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/login" element={<Login />} />
         </Routes>
       </div>
     </Router>

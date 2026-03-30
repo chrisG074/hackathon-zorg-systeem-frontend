@@ -1,7 +1,6 @@
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
-import { ReportCard } from '../components/ReportCard';
 import { Mic, Wrench, AlertCircle, User, Phone, LogOut, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 
