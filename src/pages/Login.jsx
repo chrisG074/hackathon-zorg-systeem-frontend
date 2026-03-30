@@ -19,25 +19,36 @@ export default function Login() {
     setError('');
     setIsLoading(true);
 
-    // Simulate authentication
-    setTimeout(() => {
-      if (email && password) {
-        // Mock successful login
-        localStorage.setItem('isAuthenticated', 'true');
+    try {
+      const response = await fetch('http://localhost:5258/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('roles', JSON.stringify(data.roles));
         localStorage.setItem('userEmail', email);
+        localStorage.setItem('isAuthenticated', 'true');
+        
         toast.success('Succesvol ingelogd!');
-        navigate('/');
+        navigate('/dashboard'); 
       } else {
-        setError('Vul alle velden in');
-        setIsLoading(false);
+        setError(data.message || 'E-mailadres of wachtwoord is onjuist.');
       }
-    }, 1000);
+    } catch (err) {
+      setError('Kan de server niet bereiken. Controleer of de backend draait.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-6">
       <div className="w-full max-w-md">
-        {/* Logo and Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-xl mb-4 shadow-lg">
             <Building2 className="h-8 w-8 text-primary-foreground" />
@@ -50,7 +61,6 @@ export default function Login() {
           </p>
         </div>
 
-        {/* Login Card */}
         <Card className="p-8 shadow-2xl border-slate-700">
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
@@ -105,17 +115,27 @@ export default function Login() {
             </Button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-border">
+          {/* Hier zit de nieuwe navigatie naar registreren! */}
+          <div className="mt-6 pt-6 border-t border-border space-y-3">
             <p className="text-center text-sm text-muted-foreground">
               Wachtwoord vergeten?{' '}
               <button className="text-primary hover:underline font-medium">
                 Herstel account
               </button>
             </p>
+            <p className="text-center text-sm text-muted-foreground">
+              Nog geen account?{' '}
+              <button 
+                type="button"
+                onClick={() => navigate('/register')}
+                className="text-primary hover:underline font-medium"
+              >
+                Registreer hier
+              </button>
+            </p>
           </div>
         </Card>
 
-        {/* Footer */}
         <p className="text-center text-slate-400 text-sm mt-8">
           © 2026 Voice-First Rapportage. Alle rechten voorbehouden.
         </p>
