@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from './ui/button';
-import { Building2, LogOut, List, LayoutDashboard, ShieldCheck } from 'lucide-react';
+import { Building2, LogOut, List, LayoutDashboard } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Navbar() {
@@ -26,13 +26,14 @@ export default function Navbar() {
     navigate('/login');
   };
 
+  // Standaard nav-items (zichtbaar voor iedereen)
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'Overzicht', path: '/overzicht', icon: List },
   ];
 
+  // Alleen toevoegen als de gebruiker een Admin is
   if (isAdmin) {
-    navItems.push({ name: 'Admin Overzicht', path: '/admin-overzicht', icon: ShieldCheck });
+    navItems.push({ name: 'Overzicht', path: '/overzicht', icon: List });
   }
 
   return (
