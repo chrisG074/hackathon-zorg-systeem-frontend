@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
-import { Mic, Wrench, AlertCircle, User, Phone, LogOut, Building2 } from 'lucide-react';
+import { Mic, Wrench, AlertCircle, User, Phone, LogOut, Building2, List } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Dashboard() {
@@ -21,7 +21,7 @@ export default function Dashboard() {
       <nav className="bg-primary shadow-lg border-b border-primary/20">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/dashboard')}>
               <div className="w-10 h-10 bg-primary-foreground/10 rounded-lg flex items-center justify-center">
                 <Building2 className="h-6 w-6 text-primary-foreground" />
               </div>
@@ -35,6 +35,17 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="flex items-center gap-4">
+              {/* NIEUWE KNOP NAAR OVERZICHT */}
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => navigate('/overzicht')}
+                className="hidden sm:flex"
+              >
+                <List className="h-4 w-4 mr-2" />
+                Overzicht
+              </Button>
+
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-semibold text-primary-foreground">
                   {userEmail}
@@ -120,30 +131,6 @@ export default function Dashboard() {
               </div>
             </div>
           </Card>
-        </div>
-
-        {/* Recent Reports */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-foreground">Mijn recente meldingen</h2>
-            <Button variant="outline" size="sm" className="font-semibold">
-              Alle meldingen
-            </Button>
-          </div>
-          <div className="space-y-3">
-              <Card className="p-12 text-center bg-card">
-                <div className="text-muted-foreground space-y-2">
-                  <AlertCircle className="h-12 w-12 mx-auto opacity-50" />
-                  <p className="font-medium">Nog geen meldingen</p>
-                  <p className="text-sm">Begin met het indienen van je eerste melding</p>
-                </div>
-              </Card>
-            {/* ) : (
-              recentReports.map((report) => (
-                <ReportCard key={report.id} report={report} />
-              ))
-            )} */}
-          </div>
         </div>
       </div>
     </div>

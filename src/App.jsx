@@ -6,13 +6,12 @@ import Register from './pages/Register';
 import Login from './pages/Login';
 import ReportTypeSelection from './pages/nieuwe-melding';
 import VoiceConversation from './pages/voiceConversation';
-
+import Overzicht from './pages/Overzicht';
 // Wrapper component om routes te beveiligen
 const ProtectedRoute = ({ children }) => {
   const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
   
   if (!isAuthenticated) {
-    // Stuur de gebruiker terug naar login als ze niet zijn ingelogd
     return <Navigate to="/login" replace />;
   }
   
@@ -45,6 +44,15 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <ReportTypeSelection />
+              </ProtectedRoute>
+            } 
+          />
+          {/* NIEUWE OVERZICHT ROUTE */}
+          <Route 
+            path="/overzicht" 
+            element={
+              <ProtectedRoute>
+                <Overzicht />
               </ProtectedRoute>
             } 
           />
