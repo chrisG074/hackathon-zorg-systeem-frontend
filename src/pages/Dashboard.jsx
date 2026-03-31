@@ -61,7 +61,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           <Card
             className="p-8 cursor-pointer hover:shadow-xl transition-all border-2 hover:border-primary bg-card group"
-            onClick={() => navigate('/nieuwe-melding/facilitair')}
+            onClick={() => navigate('/conversatie/facilitair')}
           >
             <div className="text-center space-y-4">
               <div className="mx-auto w-20 h-20 bg-accent/20 rounded-xl flex items-center justify-center group-hover:bg-accent/30 transition-colors">
@@ -76,7 +76,7 @@ export default function Dashboard() {
 
           <Card
             className="p-8 cursor-pointer hover:shadow-xl transition-all border-2 hover:border-primary bg-card group"
-            onClick={() => navigate('/nieuwe-melding/mic')}
+            onClick={() => navigate('/conversatie/mic')}
           >
             <div className="text-center space-y-4">
               <div className="mx-auto w-20 h-20 bg-destructive/20 rounded-xl flex items-center justify-center group-hover:bg-destructive/30 transition-colors">
@@ -91,7 +91,7 @@ export default function Dashboard() {
 
           <Card
             className="p-8 cursor-pointer hover:shadow-xl transition-all border-2 hover:border-primary bg-card group"
-            onClick={() => navigate('/nieuwe-melding/mim')}
+            onClick={() => navigate('/conversatie/mim')}
           >
             <div className="text-center space-y-4">
               <div className="mx-auto w-20 h-20 bg-secondary/20 rounded-xl flex items-center justify-center group-hover:bg-secondary/30 transition-colors">
