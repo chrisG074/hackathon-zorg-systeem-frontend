@@ -1,136 +1,136 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
-import { toast } from 'sonner';
-import { Building2, LogOut, Filter, ArrowLeft, User } from 'lucide-react';
-// import ReportCard from '../components/ReportCard'; // Zorg dat deze import klopt als je deze later gebruikt
-
-// Tijdelijke Dummy Data (vervang dit later door een fetch call naar je backend)
-const MOCK_MELDINGEN = [
-  { id: 1, type: 'Facilitair', categorie: 'Kapot bed', beschrijving: 'Het bed op kamer 104 gaat niet meer omhoog.', datum: '2026-03-31', betrokkene: 'Kamer 104' },
-  { id: 2, type: 'MIC', categorie: 'Valincident', beschrijving: 'Mevrouw de Vries is gevallen in de badkamer.', datum: '2026-03-31', betrokkene: 'Mevr. de Vries' },
-  { id: 3, type: 'MIM', categorie: 'Agressie', beschrijving: 'Bewoner was verbaal agressief tijdens medicatie ronde.', datum: '2026-03-30', betrokkene: 'Dhr. Pietersen' },
-  { id: 4, type: 'Facilitair', categorie: 'Lekkage', beschrijving: 'Kraan drupt op de tweede verdieping.', datum: '2026-03-30', betrokkene: '2e Verdieping' },
-];
+import { Filter, ArrowLeft, User, Loader2, AlertCircle } from 'lucide-react';
+import Navbar from '../components/Navbar';
 
 export default function Overzicht() {
   const navigate = useNavigate();
   const [actieveFilter, setActieveFilter] = useState('Alle');
   
-  const handleLogout = () => {
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('userEmail');
-    toast.success('Succesvol uitgelogd');
-    navigate('/login');
-  };
+  // Nieuwe states voor het ophalen van data uit de database
+  const [meldingen, setMeldingen] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Filter logica
+  // Zodra de pagina laadt, haal data op uit de .NET backend
+  useEffect(() => {
+    const fetchMeldingen = async () => {
+      try {
+        const response = await fetch('http://localhost:5258/api/meldingen'); 
+        
+        if (!response.ok) {
+          throw new Error('Kon de meldingen niet ophalen van de server.');
+        }
+        
+        const data = await response.json();
+        setMeldingen(data); // Zet de database data in onze state
+      } catch (err) {
+        console.error("Fout bij ophalen database:", err);
+        setError("Er is een probleem met de verbinding naar de database.");
+      } finally {
+        setIsLoading(false); // Het laden is klaar, of het nu gelukt is of niet
+      }
+    };
+
+    fetchMeldingen();
+  }, []);
+
+  // Filter logica gebruikt nu de 'meldingen' uit de database
   const gefilterdeMeldingen = actieveFilter === 'Alle' 
-    ? MOCK_MELDINGEN 
-    : MOCK_MELDINGEN.filter(melding => melding.type === actieveFilter);
+    ? meldingen 
+    : meldingen.filter(melding => melding.type === actieveFilter);
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Top Navigation Bar (Identiek aan dashboard voor consistentie) */}
-      <nav className="bg-primary shadow-lg border-b border-primary/20">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/dashboard')}>
-              <div className="w-10 h-10 bg-primary-foreground/10 rounded-lg flex items-center justify-center">
-                <Building2 className="h-6 w-6 text-primary-foreground" />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold text-primary-foreground">
-                  Voice-First Rapportage
-                </h1>
-                <p className="text-xs text-primary-foreground/70">
-                  Zorg Management Systeem
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleLogout}
-                className="text-primary-foreground hover:bg-primary-foreground/10"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Uitloggen
-              </Button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
-      <div className="max-w-7xl mx-auto p-6 space-y-8">
+      <div className="max-w-7xl mx-auto p-6 space-y-8 mt-4">
         <div className="flex items-center gap-4">
-          <Button variant="outline" size="icon" onClick={() => navigate('/dashboard')}>
+          <Button variant="outline" size="icon" onClick={() => navigate('/dashboard')} className="shrink-0">
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
             <h2 className="text-2xl font-bold text-foreground">
               Alle Meldingen
             </h2>
-            <p className="text-muted-foreground">Bekijk en filter alle rapportages</p>
+            <p className="text-muted-foreground">Bekijk en filter alle rapportages uit de database</p>
           </div>
         </div>
 
         {/* Filter Sectie */}
-        <Card className="p-4 bg-card flex items-center gap-4 flex-wrap">
-          <div className="flex items-center gap-2 text-muted-foreground mr-4">
+        <Card className="p-4 bg-card flex items-center gap-4 flex-wrap shadow-sm">
+          <div className="flex items-center gap-2 text-muted-foreground mr-2">
             <Filter className="h-5 w-5" />
-            <span className="font-semibold">Filter op:</span>
+            <span className="font-semibold hidden sm:inline">Filter op:</span>
           </div>
           
-          {['Alle', 'Facilitair', 'MIC', 'MIM'].map((filterType) => (
-            <Button
-              key={filterType}
-              variant={actieveFilter === filterType ? 'default' : 'outline'}
-              onClick={() => setActieveFilter(filterType)}
-              className="rounded-full"
-            >
-              {filterType}
-            </Button>
-          ))}
+          <div className="flex flex-wrap gap-2">
+            {['Alle', 'Facilitair', 'MIC', 'MIM'].map((filterType) => (
+              <Button
+                key={filterType}
+                variant={actieveFilter === filterType ? 'default' : 'outline'}
+                onClick={() => setActieveFilter(filterType)}
+                className="rounded-full"
+                size="sm"
+              >
+                {filterType}
+              </Button>
+            ))}
+          </div>
         </Card>
 
-        {/* Lijst met Meldingen */}
+        {/* Status Weergave (Laden, Error, of Data) */}
         <div className="grid gap-4">
-          {gefilterdeMeldingen.length === 0 ? (
-            <Card className="p-12 text-center bg-card">
-              <p className="text-muted-foreground font-medium">Geen meldingen gevonden voor deze filter.</p>
+          {isLoading && (
+            <Card className="p-12 text-center bg-card flex flex-col items-center justify-center text-muted-foreground">
+              <Loader2 className="h-8 w-8 animate-spin mb-4" />
+              <p className="font-medium">Meldingen ophalen uit de database...</p>
             </Card>
-          ) : (
-            gefilterdeMeldingen.map((melding) => (
-              <Card key={melding.id} className="p-6 bg-card hover:shadow-md transition-shadow">
-                <div className="flex justify-between items-start mb-3">
-                  <div className="flex items-center gap-3">
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                      melding.type === 'Facilitair' ? 'bg-accent/20 text-accent' :
-                      melding.type === 'MIC' ? 'bg-destructive/20 text-destructive' :
-                      'bg-secondary/20 text-secondary'
-                    }`}>
-                      {melding.type}
-                    </span>
-                    <h3 className="font-bold text-lg">{melding.categorie}</h3>
-                  </div>
-                  <span className="text-sm text-muted-foreground">{melding.datum}</span>
-                </div>
-                
-                {/* NIEUW: Weergave van de betrokken persoon/locatie */}
-                {melding.betrokkene && (
-                  <div className="flex items-center gap-2 text-sm font-medium text-foreground/90 mb-2 bg-muted/50 w-fit px-2 py-1 rounded-md">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span>{melding.betrokkene}</span>
-                  </div>
-                )}
-                
-                <p className="text-foreground/80 mt-2">{melding.beschrijving}</p>
-              </Card>
-            ))
           )}
+
+          {error && !isLoading && (
+            <Card className="p-12 text-center bg-destructive/10 border-destructive/20 text-destructive">
+              <AlertCircle className="h-8 w-8 mx-auto mb-4" />
+              <p className="font-medium">{error}</p>
+              <p className="text-sm mt-2 opacity-80">Check of de C# .NET Backend lokaal draait.</p>
+            </Card>
+          )}
+
+          {!isLoading && !error && gefilterdeMeldingen.length === 0 && (
+            <Card className="p-12 text-center bg-card">
+              <p className="text-muted-foreground font-medium">De database is momenteel leeg. Er zijn nog geen meldingen ingediend.</p>
+            </Card>
+          )}
+
+          {!isLoading && !error && gefilterdeMeldingen.map((melding) => (
+            <Card key={melding.id} className="p-6 bg-card hover:shadow-md transition-shadow border-l-4 border-l-primary">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-2">
+                <div className="flex items-center gap-3">
+                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                    melding.type === 'Facilitair' ? 'bg-accent/20 text-accent' :
+                    melding.type === 'MIC' ? 'bg-destructive/20 text-destructive' :
+                    'bg-secondary/20 text-secondary'
+                  }`}>
+                    {melding.type}
+                  </span>
+                  <h3 className="font-bold text-lg">{melding.categorie}</h3>
+                </div>
+                {/* Zorg dat je backend een 'datum' string of 'createdAt' timestamp terugstuurt */}
+                <span className="text-sm text-muted-foreground">{melding.datum || new Date().toLocaleDateString('nl-NL')}</span>
+              </div>
+              
+              {melding.betrokkene && (
+                <div className="flex items-center gap-2 text-sm font-medium text-foreground/90 mb-2 bg-muted/50 w-fit px-2 py-1 rounded-md">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span>{melding.betrokkene}</span>
+                </div>
+              )}
+              
+              <p className="text-foreground/80 mt-2">{melding.beschrijving}</p>
+            </Card>
+          ))}
         </div>
       </div>
     </div>
