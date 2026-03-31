@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { toast } from 'sonner';
-import { Building2, LogOut, Filter, ArrowLeft, User } from 'lucide-react';
+import { Filter, ArrowLeft, User } from 'lucide-react';
+import Header from '../components/header';
 // import ReportCard from '../components/ReportCard'; // Zorg dat deze import klopt als je deze later gebruikt
 
 // Tijdelijke Dummy Data (vervang dit later door een fetch call naar je backend)
@@ -17,6 +18,7 @@ const MOCK_MELDINGEN = [
 export default function Overzicht() {
   const navigate = useNavigate();
   const [actieveFilter, setActieveFilter] = useState('Alle');
+  const userEmail = localStorage.getItem('userEmail') || 'gebruiker@zorg.nl';
   
   const handleLogout = () => {
     localStorage.removeItem('isAuthenticated');
@@ -32,37 +34,7 @@ export default function Overzicht() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Top Navigation Bar (Identiek aan dashboard voor consistentie) */}
-      <nav className="bg-primary shadow-lg border-b border-primary/20">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/dashboard')}>
-              <div className="w-10 h-10 bg-primary-foreground/10 rounded-lg flex items-center justify-center">
-                <Building2 className="h-6 w-6 text-primary-foreground" />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold text-primary-foreground">
-                  Voice-First Rapportage
-                </h1>
-                <p className="text-xs text-primary-foreground/70">
-                  Zorg Management Systeem
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleLogout}
-                className="text-primary-foreground hover:bg-primary-foreground/10"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Uitloggen
-              </Button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Header navigate={navigate} userEmail={userEmail} onLogout={handleLogout} />
 
       <div className="max-w-7xl mx-auto p-6 space-y-8">
         <div className="flex items-center gap-4">

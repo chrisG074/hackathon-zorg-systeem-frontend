@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
-import { Mic, Wrench, AlertCircle, User, Phone, LogOut, Building2, List } from 'lucide-react';
+import { Mic, Wrench, AlertCircle, User } from 'lucide-react';
+import Header from '../components/header';
 import { toast } from 'sonner';
 
 export default function Dashboard() {
@@ -17,53 +18,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Top Navigation Bar */}
-      <nav className="bg-primary shadow-lg border-b border-primary/20">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/dashboard')}>
-              <div className="w-10 h-10 bg-primary-foreground/10 rounded-lg flex items-center justify-center">
-                <Building2 className="h-6 w-6 text-primary-foreground" />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold text-primary-foreground">
-                  Voice-First Rapportage
-                </h1>
-                <p className="text-xs text-primary-foreground/70">
-                  Zorg Management Systeem
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              {/* NIEUWE KNOP NAAR OVERZICHT */}
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => navigate('/overzicht')}
-                className="hidden sm:flex"
-              >
-                <List className="h-4 w-4 mr-2" />
-                Overzicht
-              </Button>
-
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-semibold text-primary-foreground">
-                  {userEmail}
-                </p>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleLogout}
-                className="text-primary-foreground hover:bg-primary-foreground/10"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Uitloggen
-              </Button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Header navigate={navigate} userEmail={userEmail} onLogout={handleLogout} />
 
       <div className="max-w-7xl mx-auto p-6 space-y-8">
         {/* Welcome Section */}

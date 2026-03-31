@@ -1,13 +1,24 @@
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Wrench, AlertCircle, User, ArrowLeft } from 'lucide-react';
+import Header from '../components/header';
+import { toast } from 'sonner';
 
 export default function ReportTypeSelection() {
   const navigate = useNavigate();
+  const userEmail = localStorage.getItem('userEmail') || 'gebruiker@zorg.nl';
+
+  const handleLogout = () => {
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('userEmail');
+    toast.success('Succesvol uitgelogd');
+    navigate('/login');
+  };
 
   return (
     <div className="min-h-screen bg-background">
+      <Header navigate={navigate} userEmail={userEmail} onLogout={handleLogout} />
       <div className="max-w-6xl mx-auto p-6 space-y-8">
         <Button
           variant="ghost"
