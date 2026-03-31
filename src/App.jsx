@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import Register from './pages/Register';
 import Login from './pages/Login';
 import ReportTypeSelection from './pages/nieuwe-melding';
+import VoiceConversation from './pages/voiceConversation';
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/login" element={<Login />} />
           <Route path="/nieuwe-melding" element={<ReportTypeSelection />} />
+          <Route path="/conversatie/:type" element={<VoiceConversation />} />
         </Routes>
       </div>
     </Router>
