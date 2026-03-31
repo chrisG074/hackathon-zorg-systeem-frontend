@@ -14,19 +14,29 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Gebruik een environment variable als deze bestaat, anders localhost
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5258';
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5258/api/auth/login', {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
 
-      const data = await response.json();
+      // Veiliger JSON parsen voor het geval de backend een 500 HTML error gooit
+      let data;
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.indexOf("application/json") !== -1) {
+        data = await response.json();
+      } else {
+        throw new Error("Ongeldig antwoord van de server.");
+      }
 
       if (response.ok) {
         localStorage.setItem('token', data.token);
@@ -40,6 +50,7 @@ export default function Login() {
         setError(data.message || 'E-mailadres of wachtwoord is onjuist.');
       }
     } catch (err) {
+      console.error(err);
       setError('Kan de server niet bereiken. Controleer of de backend draait.');
     } finally {
       setIsLoading(false);
@@ -115,7 +126,6 @@ export default function Login() {
             </Button>
           </form>
 
-          {/* Hier zit de nieuwe navigatie naar registreren! */}
           <div className="mt-6 pt-6 border-t border-border space-y-3">
             <p className="text-center text-sm text-muted-foreground">
               Wachtwoord vergeten?{' '}
