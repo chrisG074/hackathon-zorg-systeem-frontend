@@ -7,16 +7,7 @@ import Login from './pages/Login';
 import ReportTypeSelection from './pages/nieuwe-melding';
 import VoiceConversation from './pages/voiceConversation';
 import Overzicht from './pages/Overzicht';
-// Wrapper component om routes te beveiligen
-const ProtectedRoute = ({ children }) => {
-  const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-  
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-  
-  return children;
-};
+import ProtectedRoute from './components/ProtectedRoute'; // Gebruik nu het losse bestand
 
 const AiAssistant = () => {
   const [isListening, setIsListening] = useState(false);
@@ -64,7 +55,6 @@ const AiAssistant = () => {
   const askAi = async (prompt) => {
     setLoading(true);
     try {
-      // FORCEER HTTP EN POORT 5258
       const response = await fetch('http://localhost:5258/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -73,7 +63,7 @@ const AiAssistant = () => {
 
       if (!response.ok) throw new Error("Backend onbereikbaar");
 
-      const aiData = await response.json(); // Geen extra JSON.parse nodig
+      const aiData = await response.json();
       const antwoord = aiData.choices[0].message.content;
 
       toast.info("AI Assistent:", {
@@ -111,7 +101,7 @@ export default function App() {
   return (
     <Router>
       <Toaster position="top-right" richColors /> 
-      
+      <AiAssistant />
       <div>
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -119,7 +109,6 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/conversatie/:type" element={<VoiceConversation />} />
           
-          {/* Beveiligde Routes */}
           <Route 
             path="/dashboard" 
             element={
@@ -136,12 +125,23 @@ export default function App() {
               </ProtectedRoute>
             } 
           />
-          {/* NIEUWE OVERZICHT ROUTE */}
           <Route 
             path="/overzicht" 
             element={
               <ProtectedRoute>
                 <Overzicht />
+              </ProtectedRoute>
+            } 
+          />
+          {/* NIEUWE ADMIN ROUTE */}
+          <Route 
+            path="/admin-overzicht" 
+            element={
+              <ProtectedRoute adminOnly={true}>
+                <div className="p-8 text-center">
+                  <h1 className="text-2xl font-bold">Admin Paneel</h1>
+                  <p>Alleen toegankelijk voor beheerders.</p>
+                </div>
               </ProtectedRoute>
             } 
           />
