@@ -1,31 +1,53 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'sonner';
 import Dashboard from './pages/Dashboard';
-
 import Register from './pages/Register';
 import Login from './pages/Login';
 import ReportTypeSelection from './pages/nieuwe-melding';
 import VoiceConversation from './pages/voiceConversation';
 
+// Wrapper component om routes te beveiligen
+const ProtectedRoute = ({ children }) => {
+  const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+  
+  if (!isAuthenticated) {
+    // Stuur de gebruiker terug naar login als ze niet zijn ingelogd
+    return <Navigate to="/login" replace />;
+  }
+  
+  return children;
+};
+
 export default function App() {
   return (
     <Router>
+      <Toaster position="top-right" richColors /> 
+      
       <div>
         <Routes>
-          {/* Standaard doorsturen naar dashboard */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          
-          {/* Openbare routes (waar je bij mag zonder in te loggen) */}
           <Route path="/register" element={<Register />} />
-          
-          {/* Haal deze uit de comments zodra we Login.jsx hebben gemaakt */}
-          {/* <Route path="/login" element={<Login />} /> */}
-
-          {/* Besloten routes (hier voegen we later een beveiliging aan toe) */}
-          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/nieuwe-melding" element={<ReportTypeSelection />} />
           <Route path="/conversatie/:type" element={<VoiceConversation />} />
+          
+          {/* Beveiligde Routes */}
+          <Route 
+            path="/dashboard" 
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/nieuwe-melding" 
+            element={
+              <ProtectedRoute>
+                <ReportTypeSelection />
+              </ProtectedRoute>
+            } 
+          />
         </Routes>
       </div>
     </Router>

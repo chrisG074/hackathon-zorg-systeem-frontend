@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
@@ -11,28 +12,37 @@ export default function Register() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5258';
+
   const handleRegister = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // Roep hier straks je .NET backend aan: http://localhost:5258/api/auth/register
-      const response = await fetch('http://localhost:5258/api/auth/register', {
+      const response = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
 
-      const data = await response.json();
+      let data;
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.indexOf("application/json") !== -1) {
+        data = await response.json();
+      } else {
+        throw new Error("Ongeldig antwoord van de server.");
+      }
 
       if (response.ok) {
         toast.success('Account succesvol aangemaakt! Je kunt nu inloggen.');
-        navigate('/login'); // Stuur ze naar de inlogpagina
+        navigate('/login');
       } else {
-        toast.error(data.message || 'Er is iets misgegaan.');
+        // Toon de specifieke error (zoals wachtwoord vereisten) uit de backend
+        toast.error(data.message || 'Er is iets misgegaan bij het registreren.');
       }
     } catch (error) {
-      toast.error('Kan de server niet bereiken.');
+      console.error(error);
+      toast.error('Kan de server niet bereiken. Controleer of de backend draait.');
     } finally {
       setLoading(false);
     }
