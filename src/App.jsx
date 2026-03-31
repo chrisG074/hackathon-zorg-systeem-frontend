@@ -5,8 +5,8 @@ import Dashboard from './pages/Dashboard';
 import Register from './pages/Register';
 import Login from './pages/Login';
 import ReportTypeSelection from './pages/nieuwe-melding';
-import Overzicht from './pages/Overzicht'; // <-- NIEUW IMPORT
-
+import VoiceConversation from './pages/voiceConversation';
+import Overzicht from './pages/Overzicht';
 // Wrapper component om routes te beveiligen
 const ProtectedRoute = ({ children }) => {
   const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
@@ -28,6 +28,7 @@ export default function App() {
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/conversatie/:type" element={<VoiceConversation />} />
           
           {/* Beveiligde Routes */}
           <Route 
