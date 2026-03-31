@@ -1,13 +1,11 @@
-import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from './ui/button';
-import { Building2, LogOut, List, LayoutDashboard, Menu, X, ShieldCheck } from 'lucide-react';
+import { Building2, LogOut, List, LayoutDashboard, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const userEmail = localStorage.getItem('userEmail') || 'gebruiker@zorg.nl';
   const userRoles = JSON.parse(localStorage.getItem('userRoles') || '[]');
@@ -33,7 +31,6 @@ export default function Navbar() {
     { name: 'Overzicht', path: '/overzicht', icon: List },
   ];
 
-  // Voeg Admin Overzicht alleen toe als gebruiker Admin is
   if (isAdmin) {
     navItems.push({ name: 'Admin Overzicht', path: '/admin-overzicht', icon: ShieldCheck });
   }

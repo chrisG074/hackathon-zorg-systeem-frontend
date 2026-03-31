@@ -3,49 +3,45 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Filter, ArrowLeft, User, Loader2, AlertCircle } from 'lucide-react';
-import Navbar from '../components/Navbar';
 
 export default function Overzicht() {
   const navigate = useNavigate();
   const [actieveFilter, setActieveFilter] = useState('Alle');
   
-  // Nieuwe states voor het ophalen van data uit de database
   const [meldingen, setMeldingen] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Zodra de pagina laadt, haal data op uit de .NET backend
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5258';
+
   useEffect(() => {
     const fetchMeldingen = async () => {
       try {
-        const response = await fetch('http://localhost:5258/api/meldingen'); 
+        const response = await fetch(`${API_URL}/api/meldingen`); 
         
         if (!response.ok) {
           throw new Error('Kon de meldingen niet ophalen van de server.');
         }
         
         const data = await response.json();
-        setMeldingen(data); // Zet de database data in onze state
+        setMeldingen(data); 
       } catch (err) {
         console.error("Fout bij ophalen database:", err);
         setError("Er is een probleem met de verbinding naar de database.");
       } finally {
-        setIsLoading(false); // Het laden is klaar, of het nu gelukt is of niet
+        setIsLoading(false); 
       }
     };
 
     fetchMeldingen();
-  }, []);
+  }, [API_URL]);
 
-  // Filter logica gebruikt nu de 'meldingen' uit de database
   const gefilterdeMeldingen = actieveFilter === 'Alle' 
     ? meldingen 
     : meldingen.filter(melding => melding.type === actieveFilter);
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-
+    <div className="bg-background"> {/* Removed min-h-screen here as Layout handles it */}
       <div className="max-w-7xl mx-auto p-6 space-y-8 mt-4">
         <div className="flex items-center gap-4">
           <Button variant="outline" size="icon" onClick={() => navigate('/dashboard')} className="shrink-0">
@@ -81,7 +77,7 @@ export default function Overzicht() {
           </div>
         </Card>
 
-        {/* Status Weergave (Laden, Error, of Data) */}
+        {/* Status Weergave */}
         <div className="grid gap-4">
           {isLoading && (
             <Card className="p-12 text-center bg-card flex flex-col items-center justify-center text-muted-foreground">
@@ -117,7 +113,6 @@ export default function Overzicht() {
                   </span>
                   <h3 className="font-bold text-lg">{melding.categorie}</h3>
                 </div>
-                {/* Zorg dat je backend een 'datum' string of 'createdAt' timestamp terugstuurt */}
                 <span className="text-sm text-muted-foreground">{melding.datum || new Date().toLocaleDateString('nl-NL')}</span>
               </div>
               

@@ -2,7 +2,6 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Mic, Wrench, AlertCircle, User, Phone } from 'lucide-react';
-import Navbar from '../components/Navbar'; // <-- IMPORT NAVBAR
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -12,7 +11,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar /> {/* <-- GEBRUIK NAVBAR */}
 
       <div className="max-w-7xl mx-auto p-6 space-y-8 mt-4">
         {/* Welcome Section */}
