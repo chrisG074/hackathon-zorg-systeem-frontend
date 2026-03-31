@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import Register from './pages/Register';
 import Login from './pages/Login';
 import ReportTypeSelection from './pages/nieuwe-melding';
+import ProtectedRoute from './components/ProtectedRoute';
 
 export default function App() {
   return (
@@ -16,9 +17,9 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/login" element={<Login />} />
-          <Route path="/nieuwe-melding" element={<ReportTypeSelection />} />
+          <Route path="/nieuwe-melding" element={<ProtectedRoute><ReportTypeSelection /></ProtectedRoute>} />
         </Routes>
       </div>
     </Router>
