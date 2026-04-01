@@ -4,7 +4,6 @@ import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Filter, ArrowLeft, User, Loader2, AlertCircle, MapPin, Clock, Search } from 'lucide-react';
 
-// De nieuwe subcategorieën data
 const SUB_CATEGORIEEN = {
   Facilitair: ['Kapotte verlichting', 'Sanitair problemen', 'Meubilair', 'ICT & apparatuur', 'Schoonmaak'],
   MIC: ['Valincident', 'Medicatiefout', 'Agressie', 'Vermissing', 'Seksueel misbruik', 'Fysieke letsel', 'Overige incidenten'],
@@ -15,7 +14,7 @@ export default function Overzicht() {
   const navigate = useNavigate();
   const [actieveFilter, setActieveFilter] = useState('Alle');
   const [actieveSubFilter, setActieveSubFilter] = useState('Alle');
-  const [actieveClientFilter, setActieveClientFilter] = useState('Alle'); // Nieuwe state voor cliënt filter
+  const [actieveClientFilter, setActieveClientFilter] = useState('Alle'); 
   
   const [meldingen, setMeldingen] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -39,16 +38,19 @@ export default function Overzicht() {
     fetchMeldingen();
   }, [API_URL]);
 
-  // Reset de subfilter als er van hoofdfilter gewisseld wordt
   const handleFilterChange = (type) => {
     setActieveFilter(type);
     setActieveSubFilter('Alle');
   };
 
-  // Haal een unieke lijst van alle betrokkenen/cliënten op uit de data, filter lege velden eruit
-  const uniekeClienten = ['Alle', ...new Set(meldingen.map(m => m.betrokkene).filter(Boolean))].sort();
+  // HAALT NU ALLEEN NAMEN OP UIT MIC (CLIËNT) MELDINGEN
+  const uniekeClienten = ['Alle', ...new Set(
+    meldingen
+      .filter(m => m.type === 'MIC')
+      .map(m => m.betrokkene)
+      .filter(Boolean)
+  )].sort();
 
-  // Logica om op hoofd-, subcategorie én cliënt te filteren
   const gefilterdeMeldingen = meldingen.filter(melding => {
     const matchType = actieveFilter === 'Alle' || melding.type === actieveFilter;
     const matchSub = actieveSubFilter === 'Alle' || (melding.categorie && melding.categorie.toLowerCase() === actieveSubFilter.toLowerCase());
@@ -60,6 +62,7 @@ export default function Overzicht() {
   return (
     <div className="bg-slate-50/50 min-h-full pb-12">
       <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 mt-2">
+        
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
           <div className="flex items-center gap-4">
@@ -84,7 +87,6 @@ export default function Overzicht() {
             </div>
             
             <div className="flex flex-col sm:flex-row w-full gap-3 sm:gap-0">
-              {/* Hoofdfilters */}
               <div className="flex overflow-x-auto no-scrollbar gap-2 pb-1 sm:pb-0">
                 {['Alle', 'Facilitair', 'MIC', 'MIM'].map((filterType) => (
                   <Button
@@ -102,7 +104,6 @@ export default function Overzicht() {
                 ))}
               </div>
 
-              {/* Subcategorie Dropdown */}
               {actieveFilter !== 'Alle' && (
                 <div className="flex items-center gap-2 sm:ml-4 sm:border-l sm:border-slate-200 sm:pl-4">
                   <select
@@ -121,12 +122,12 @@ export default function Overzicht() {
             </div>
           </Card>
 
-          {/* Cliënt / Betrokkene Filter Sectie */}
+          {/* Cliënt Filter Sectie (Alleen voor cliënten) */}
           <Card className="p-3 sm:p-4 bg-white flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 shadow-sm border-slate-200 rounded-2xl">
             <div className="flex items-center gap-2 text-slate-500 pl-1 shrink-0">
               <Search className="h-4 w-4 text-primary" />
               <label htmlFor="clientFilter" className="font-bold text-xs uppercase tracking-wider">
-                Filter op Cliënt / Medewerker:
+                Filter op Cliënt:
               </label>
             </div>
             
@@ -140,7 +141,7 @@ export default function Overzicht() {
               >
                 {uniekeClienten.map((client, index) => (
                   <option key={index} value={client}>
-                    {client === 'Alle' ? 'Alle betrokkenen tonen' : client}
+                    {client === 'Alle' ? 'Alle cliënten tonen' : client}
                   </option>
                 ))}
               </select>
