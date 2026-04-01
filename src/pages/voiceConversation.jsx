@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable no-unused-vars */
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { Button } from '../components/ui/button';
@@ -445,9 +447,14 @@ export default function VoiceConversation() {
                   Ik luister... (Spreek nu)
                 </p>
                 {currentInput && (
-                  <p className="text-sm text-gray-500 truncate max-w-full px-4">
-                    "{currentInput}"
-                  </p>
+                  <div className="w-full flex gap-2 px-4">
+                    <textarea
+                      value={currentInput}
+                      readOnly
+                      className="flex-1 p-3 border rounded-lg resize-none bg-white text-sm"
+                      rows="2"
+                    />
+                  </div>
                 )}
               </div>
             ) : useKeyboard ? (
@@ -483,7 +490,7 @@ export default function VoiceConversation() {
                 </div>
               </div>
             ) : (
-              <div className="flex justify-center gap-4">
+              <div className="flex justify-center">
                 {!isListening ? (
                   <Button
                     size="lg"
@@ -503,20 +510,36 @@ export default function VoiceConversation() {
                     <MicOff className="h-8 w-8" />
                   </Button>
                 )}
-                
-                {currentInput && (
-                  <Button
-                    size="lg"
-                    onClick={handleSubmitAnswer}
-                    disabled={aiLoading}
-                    className="h-20 px-8 rounded-full bg-green-600 hover:bg-green-700"
-                  >
-                    Verstuur "{currentInput.substring(0, 15)}..."
-                  </Button>
-                )}
               </div>
             )}
           </div>
+
+          {currentInput && !isListening && !useKeyboard && (
+            <div className="flex gap-2 w-full px-4 items-stretch">
+              <textarea
+                value={currentInput}
+                readOnly
+                className="flex-1 p-3 border rounded-lg resize-none bg-gray-50 text-sm"
+                rows="3"
+              />
+              <Button
+                size="lg"
+                onClick={handleSubmitAnswer}
+                disabled={aiLoading}
+                className="px-8 rounded-lg bg-green-600 hover:bg-green-700 h-25"
+              >
+                {aiLoading ? (
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
+                  </div>
+                ) : (
+                  <Send className="h-5 w-5 mr-2" />
+                )}
+                Verstuur
+              </Button>
+            </div>
+          )}
 
           <div className="flex justify-center gap-2">
             {!useKeyboard ? (
