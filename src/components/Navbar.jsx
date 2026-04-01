@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from './ui/button';
-import { Building2, LogOut, List, LayoutDashboard, ShieldCheck, Menu, X, User } from 'lucide-react';
+import { Building2, LogOut, List, LayoutDashboard, Menu, X, User } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Navbar() {
@@ -39,12 +39,12 @@ export default function Navbar() {
 
   if (isAdmin) {
     navItems.push({ name: 'Overzicht', path: '/overzicht', icon: List });
-    navItems.push({ name: 'Admin Paneel', path: '/admin-paneel', icon: ShieldCheck });
+    // Admin Paneel is hier succesvol verwijderd
   }
 
   return (
-    <nav className="sticky top-0 z-50 bg-primary shadow-lg border-b border-primary-foreground/10">
-      <div className="w-full px-6 md:px-10"> {/* Fluid width with padding */}
+    <nav className="sticky top-0 z-50 w-full bg-primary shadow-lg border-b border-primary-foreground/10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <div 
@@ -54,7 +54,9 @@ export default function Navbar() {
               <div className="bg-white/10 p-2 rounded-xl group-hover:bg-white/20 transition-colors">
                 <Building2 className="h-6 w-6 text-primary-foreground" />
               </div>
-              <span className="ml-3 text-xl font-bold text-primary-foreground tracking-tight">SoftZorg</span>
+              <span className="ml-3 text-xl font-bold text-primary-foreground tracking-tight hidden sm:block">
+                SoftZorg
+              </span>
             </div>
           </div>
 
@@ -118,9 +120,10 @@ export default function Navbar() {
         </div>
       </div>
 
+      {/* Mobile Menu */}
       {isMobileMenuOpen && (
         <div className="md:hidden bg-primary border-t border-primary-foreground/10 absolute w-full shadow-2xl transition-all duration-300 ease-in-out">
-          <div className="px-6 pt-4 pb-6 space-y-4"> {/* Fluid width padding */}
+          <div className="px-4 pt-4 pb-6 space-y-4">
             <div className="flex flex-col space-y-2">
               {navItems.map((item) => {
                 const Icon = item.icon;
