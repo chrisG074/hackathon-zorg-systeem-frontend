@@ -340,6 +340,47 @@ INSTRUCTIE: Scan het bovenstaande gesprek op antwoorden. Stel GEEN vragen over z
     const aiResponse = await sendToAi(userMessage);
     
     if (aiResponse) {
+      // Check if the form is complete
+      if (aiResponse.includes('[COMPLEET]')) {
+        const parts = aiResponse.split('[COMPLEET]');
+        const jsonString = parts[1].trim();
+
+        try {
+          const aiData = JSON.parse(jsonString);
+          
+          // Map AI data to the specific field names expected by ReviewReport
+          let mappedData = {};
+          
+          if (type === 'facilitair') {
+            mappedData = {
+              location: aiData.location,
+              equipmentType: aiData.equipment,
+              isUrgent: aiData.isUrgent,
+              description: aiData.description
+            };
+          } else if (type === 'mic') {
+            mappedData = {
+              clientName: aiData.clientName,
+              bodyLocation: aiData.injury,
+              healthComplaints: aiData.clientBehavior,
+              description: `${aiData.dateTime}: ${aiData.description}. Actie: ${aiData.followUp}`
+            };
+          } else if (type === 'mim') {
+            mappedData = {
+              category: aiData.incidentType,
+              description: aiData.description,
+              supervisor: aiData.othersInvolved,
+              workAbsence: aiData.needsSupport
+            };
+          }
+
+          navigate('/review', { state: { formData: mappedData, type: type } });
+          return;
+        } catch (e) {
+          console.error("Fout bij het verwerken van de melding", e);
+        }
+      }
+
       // Add SIMO's response to conversation
       setMessages((prev) => [
         ...prev,
