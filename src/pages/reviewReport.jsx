@@ -7,12 +7,56 @@ import { Textarea } from '../components/ui/textarea';
 import { Label } from '../components/ui/label';
 import { ArrowLeft, Edit2, Check } from 'lucide-react';
 
+// Mapping van externe veldnamen naar interne veldnamen
+const fieldMappings = {
+  facilitair: {
+    wat_kapot: 'equipmentType',
+    ruimte: 'location',
+    storing_omschrijving: 'description',
+    is_spoed: 'isUrgent',
+  },
+  mic: {
+    datum_tijd: 'dateTime',
+    locatie: 'location',
+    zorgvrager: 'clientName',
+    soort_incident: 'incidentType',
+    gedrag_client: 'clientBehavior',
+    gebeurtenis: 'description',
+    letsel: 'injury',
+    opvolging: 'prevention',
+  },
+  mim: {
+    datum_tijd: 'dateTime',
+    locatie: 'location',
+    soort_incident: 'incidentType',
+    betrokkenen: 'involvedOthers',
+    hoe_gebeurd: 'description',
+    letsel: 'injury',
+    behoefte_opvang: 'needsSupport',
+  },
+};
+
+// Functie om velden te mappen
+const mapFormData = (data, type) => {
+  if (!data || !type) return data;
+  
+  const mapping = fieldMappings[type] || {};
+  const mappedData = {};
+  
+  Object.entries(data).forEach(([key, value]) => {
+    const mappedKey = mapping[key] || key;
+    mappedData[mappedKey] = value;
+  });
+  
+  return mappedData;
+};
+
 export default function ReviewReport() {
   const location = useLocation();
   const navigate = useNavigate();
   const { formData, type } = location.state ?? {};
-  
-  const [editableData, setEditableData] = useState(formData ?? {});
+
+  const [editableData, setEditableData] = useState(() => mapFormData(formData, type) ?? {});
   const [editingField, setEditingField] = useState(null);
 
   useEffect(() => {
@@ -88,8 +132,8 @@ export default function ReviewReport() {
                   ? 'Ja'
                   : 'Nee'
                 : Array.isArray(value)
-                ? value.join(', ')
-                : value || '-'}
+                  ? value.join(', ')
+                  : value || '-'}
             </span>
             <Button
               size="icon"
@@ -135,28 +179,35 @@ export default function ReviewReport() {
 
           {type === 'facilitair' && (
             <>
+              {renderField('Wat is er kapot?', 'equipmentType', editableData.equipmentType)}
               {renderField('Locatie/Ruimte', 'location', editableData.location)}
-              {renderField('Type hulpmiddel', 'equipmentType', editableData.equipmentType)}
-              {renderField('Spoed (€152,75)', 'isUrgent', editableData.isUrgent, 'boolean')}
-              {renderField('Omschrijving', 'description', editableData.description, 'textarea')}
+              {renderField('Beschrijving storing', 'description', editableData.description, 'textarea')}
+              {renderField('Spoedmelding', 'isUrgent', editableData.isUrgent, 'boolean')}
             </>
           )}
 
           {type === 'mic' && (
             <>
+              {renderField('Datum en tijd', 'dateTime', editableData.dateTime)}
+              {renderField('Locatie voorval', 'location', editableData.location)}
               {renderField('Naam cliënt', 'clientName', editableData.clientName)}
-              {renderField('Locatie letsel', 'bodyLocation', editableData.bodyLocation)}
-              {renderField('Gezondheidsklachten', 'healthComplaints', editableData.healthComplaints)}
-              {renderField('Toedracht', 'description', editableData.description, 'textarea')}
+              {renderField('Soort incident', 'incidentType', editableData.incidentType)}
+              {renderField('Reactie/Gedrag cliënt', 'clientBehavior', editableData.clientBehavior, 'textarea')}
+              {renderField('Wat is er gebeurd?', 'description', editableData.description, 'textarea')}
+              {renderField('Letsel en locatie', 'injury', editableData.injury)}
+              {renderField('Ingeperkt/Voorkomen', 'prevention', editableData.prevention, 'textarea')}
             </>
           )}
 
           {type === 'mim' && (
             <>
-              {renderField('Categorie', 'category', editableData.category)}
-              {renderField('Toedracht', 'description', editableData.description, 'textarea')}
-              {renderField('Leidinggevende', 'supervisor', editableData.supervisor)}
-              {renderField('Arbeidsverzuim', 'workAbsence', editableData.workAbsence, 'boolean')}
+              {renderField('Datum en tijd', 'dateTime', editableData.dateTime)}
+              {renderField('Locatie voorval', 'location', editableData.location)}
+              {renderField('Soort incident', 'incidentType', editableData.incidentType)}
+              {renderField('Andere betrokkenen', 'involvedOthers', editableData.involvedOthers)}
+              {renderField('Hoe is het gebeurd?', 'description', editableData.description, 'textarea')}
+              {renderField('Letsel', 'injury', editableData.injury)}
+              {renderField('Behoefte aan opvang?', 'needsSupport', editableData.needsSupport, 'boolean')}
             </>
           )}
         </Card>
