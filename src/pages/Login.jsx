@@ -54,7 +54,7 @@ export default function Login() {
           <div className="bg-primary/10 p-3 rounded-2xl mb-4">
             <Building2 className="h-8 w-8 text-primary" />
           </div>
-          <h1 className="text-3xl font-bold text-slate-900">SoftZorg</h1>
+          <h1 className="text-3xl font-bold text-slate-900">SIMO</h1>
           <p className="text-slate-500 mt-2 text-center">Log in op het zorgportaal</p>
         </div>
 
