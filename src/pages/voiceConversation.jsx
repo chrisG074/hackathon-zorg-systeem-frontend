@@ -12,7 +12,6 @@ import {
   Send,
   Volume2,
 } from 'lucide-react';
-import { ConversationMessage, ReportType } from '../types.js';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Card } from '../components/ui/card';
 import { toast } from 'sonner';
@@ -36,7 +35,6 @@ export default function VoiceConversation() {
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5258';
 
-  // Check microphone permission on mount
   useEffect(() => {
     const checkMicrophonePermission = async () => {
       try {
@@ -56,88 +54,70 @@ export default function VoiceConversation() {
     checkMicrophonePermission();
   }, []);
 
-  // Initialize speech recognition when permission is granted
   useEffect(() => {
     if (microphonePermission === 'granted') {
       initializeSpeechRecognition();
     }
   }, [microphonePermission]);
 
-  // Send message to AI and get response
   const sendToAi = async (userMessage) => {
-  try {
-    setAiLoading(true);
-    
-    let typeContext = '';
-    if (type === 'facilitair') typeContext = 'TYPE: Facilitair melding.';
-    else if (type === 'mic') typeContext = 'TYPE: MIC (Melding Incident Cliënt).';
-    else if (type === 'mim') typeContext = 'TYPE: MIM (Melding Incident Medewerker).';
+    try {
+      setAiLoading(true);
+      
+      let typeContext = '';
+      if (type === 'facilitair') typeContext = 'TYPE: Facilitair melding.';
+      else if (type === 'mic') typeContext = 'TYPE: MIC (Melding Incident Cliënt).';
+      else if (type === 'mim') typeContext = 'TYPE: MIM (Melding Incident Medewerker).';
 
-    // 1. Bouw de chatgeschiedenis op uit de bestaande messages state
-    // We filteren de introductie er even uit om de focus op de feiten te houden
-    const history = messages
-      .filter((_, index) => index > 0) // Slaat de eerste SIMO intro over voor minder ruis
-      .map(m => `${m.role === 'user' ? 'Gebruiker' : 'Assistent'}: ${m.content}`)
-      .join('\n');
+      const history = messages
+        .filter((_, index) => index > 0)
+        .map(m => `${m.role === 'user' ? 'Gebruiker' : 'Assistent'}: ${m.content}`)
+        .join('\n');
 
-    // 2. Maak de definitieve prompt
-    // We vertellen de AI expliciet dat hij in de geschiedenis moet kijken
-    const fullPrompt = `${typeContext}
-Hieronder volgt het gesprek tot nu toe. Gebruik de informatie uit eerdere berichten om te bepalen wat je al weet.
+      const fullPrompt = `${typeContext}\nHieronder volgt het gesprek tot nu toe. Gebruik de informatie uit eerdere berichten om te bepalen wat je al weet.\n\nGESPREK:\n${history}\nGebruiker: ${userMessage}\n\nINSTRUCTIE: Scan het bovenstaande gesprek op antwoorden. Stel GEEN vragen over zaken die hierboven al zijn genoemd (zoals namen, tijden of locaties).`;
 
-GESPREK:
-${history}
-Gebruiker: ${userMessage}
+      // GEWIJZIGD: Gebruik API_URL in plaats van localhost
+      const response = await fetch(`${API_URL}/api/Ai/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          prompt: fullPrompt,
+          type: type,
+          context: formData 
+        })
+      });
 
-INSTRUCTIE: Scan het bovenstaande gesprek op antwoorden. Stel GEEN vragen over zaken die hierboven al zijn genoemd (zoals namen, tijden of locaties).`;
+      if (!response.ok) throw new Error(`API responded with status ${response.status}`);
 
-    const response = await fetch('http://localhost:5258/api/Ai/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        prompt: fullPrompt,
-        type: type,
-        context: formData // formData blijft behouden voor je backend opslag
-      })
-    });
-
-    if (!response.ok) throw new Error(`API responded with status ${response.status}`);
-
-    const data = await response.json();
-    
-    let aiReply = '';
-    // Parsing voor Gemini 3.1 Thinking
-    if (data.candidates && data.candidates[0]?.content?.parts) {
-      const parts = data.candidates[0].content.parts;
-      // Zoek de tekst part (negeer de thought part)
-      const textPart = parts.find(p => p.text && !p.thought);
-      aiReply = textPart ? textPart.text : "Geen antwoord gevonden.";
-    } else {
-      aiReply = data.message || "Fout bij verwerken AI antwoord.";
+      const data = await response.json();
+      
+      let aiReply = '';
+      if (data.candidates && data.candidates[0]?.content?.parts) {
+        const parts = data.candidates[0].content.parts;
+        const textPart = parts.find(p => p.text && !p.thought);
+        aiReply = textPart ? textPart.text : "Geen antwoord gevonden.";
+      } else {
+        aiReply = data.message || "Fout bij verwerken AI antwoord.";
+      }
+      
+      return aiReply;
+    } catch (error) {
+      console.error('Error calling AI:', error);
+      toast.error('Fout bij AI communicatie.');
+      return null;
+    } finally {
+      setAiLoading(false);
     }
-    
-    return aiReply;
-  } catch (error) {
-    console.error('Error calling AI:', error);
-    toast.error('Fout bij AI communicatie.');
-    return null;
-  } finally {
-    setAiLoading(false);
-  }
-};
+  };
 
-  // Request microphone access
   const requestMicrophoneAccess = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // Stop the stream immediately - we just needed permission
       stream.getTracks().forEach(track => track.stop());
       setMicrophonePermission('granted');
       toast.success('Microfoon toegang verleend!', {
         duration: 2000,
       });
-      // Speech recognition will initialize automatically via the useEffect that watches microphonePermission
-      
       return true;
     } catch (error) {
       console.error('Microphone access denied:', error);
@@ -154,7 +134,6 @@ INSTRUCTIE: Scan het bovenstaande gesprek op antwoorden. Stel GEEN vragen over z
       return;
     }
 
-    // Don't reinitialize if already initialized
     if (recognitionRef.current) {
       return;
     }
@@ -200,7 +179,6 @@ INSTRUCTIE: Scan het bovenstaande gesprek op antwoorden. Stel GEEN vragen over z
           toast.error(errorMessage, { duration: 4000 });
           break;
         case 'aborted':
-          // Don't show error for aborted (user stopped manually)
           return;
         default:
           toast.error(errorMessage, { duration: 4000 });
@@ -213,7 +191,6 @@ INSTRUCTIE: Scan het bovenstaande gesprek op antwoorden. Stel GEEN vragen over z
   };
 
   useEffect(() => {
-    // Start AI conversation
     if (messages.length === 0) {
       const introMessage = `Hallo! Ik ben SIMO, je AI assistent. Ik zal je helpen met het indienen van je melding voor ${type}. Kun je alsjeblieft specifiek vertellen wat er is gebeurd?`;
 
@@ -225,7 +202,6 @@ INSTRUCTIE: Scan het bovenstaande gesprek op antwoorden. Stel GEEN vragen over z
         },
       ]);
 
-      // Only speak intro if TTS is available
       if (!hasSpokenIntroRef.current && 'speechSynthesis' in window) {
         hasSpokenIntroRef.current = true;
         setTimeout(() => {
@@ -241,7 +217,7 @@ INSTRUCTIE: Scan het bovenstaande gesprek op antwoorden. Stel GEEN vragen over z
       if (recognitionRef.current) {
         recognitionRef.current.abort();
       }
-      stop(); // Stop any ongoing speech when unmounting
+      stop();
     };
   }, [type, speak, stop]);
 
@@ -262,7 +238,6 @@ INSTRUCTIE: Scan het bovenstaande gesprek op antwoorden. Stel GEEN vragen over z
       return;
     }
 
-    // Stop AI speech if we're interrupting it
     if (isSpeaking) {
       stop();
       setIsSpeaking(false);
@@ -271,7 +246,6 @@ INSTRUCTIE: Scan het bovenstaande gesprek op antwoorden. Stel GEEN vragen over z
     setCurrentInput('');
     setIsListening(true);
     
-    // Ensure recognition is initialized
     if (!recognitionRef.current) {
       initializeSpeechRecognition();
     }
@@ -282,7 +256,6 @@ INSTRUCTIE: Scan het bovenstaande gesprek op antwoorden. Stel GEEN vragen over z
       console.error('Failed to start speech recognition:', error);
       setIsListening(false);
       
-      // If recognition is already started or in a weird state, abort and retry
       if (error.name === 'InvalidStateError') {
         recognitionRef.current?.abort();
         setTimeout(() => {
@@ -306,22 +279,19 @@ INSTRUCTIE: Scan het bovenstaande gesprek op antwoorden. Stel GEEN vragen over z
   const handleSubmitAnswer = async () => {
     if (!currentInput.trim() || aiLoading) return;
 
-    // Stop listening if active
     if (isListening) {
       stopListening();
     }
 
-    // Stop speaking if active
     if (isSpeaking) {
       stop();
       setIsSpeaking(false);
     }
 
     const userInput = currentInput;
-    setCurrentInput(''); // Clear input immediately for better UX
-    setUseKeyboard(false); // Hide keyboard input if used
+    setCurrentInput('');
+    setUseKeyboard(false);
 
-    // Add user message to conversation
     setMessages((prev) => [
       ...prev,
       {
@@ -330,21 +300,17 @@ INSTRUCTIE: Scan het bovenstaande gesprek op antwoorden. Stel GEEN vragen over z
       },
     ]);
 
-    // Send to AI and wait for response
     const aiResponseContent = await sendToAi(userInput);
     
     if (aiResponseContent) {
-      // Create new AI message
       const aiMessage = {
         role: 'assistant',
         content: aiResponseContent,
         fieldName: null,
       };
 
-      // Add AI response to conversation
       setMessages((prev) => [...prev, aiMessage]);
 
-      // Read response aloud
       setIsSpeaking(true);
       speak(aiResponseContent, () => {
         setIsSpeaking(false);
@@ -352,18 +318,16 @@ INSTRUCTIE: Scan het bovenstaande gesprek op antwoorden. Stel GEEN vragen over z
     }
   };
 
-  // Format type for display
   const displayType = type ? type.charAt(0).toUpperCase() + type.slice(1) : '';
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-slate-50 flex flex-col max-w-3xl mx-auto w-full shadow-xl">
-      {/* Header */}
       <div className="bg-primary text-primary-foreground p-4 flex items-center gap-4 sticky top-0 z-10 shadow-md">
         <Button
           variant="ghost"
           size="icon"
           onClick={() => {
-            stop(); // Stop speaking if leaving
+            stop();
             navigate('/nieuwe-melding');
           }}
           className="text-primary-foreground hover:bg-primary/20 shrink-0"
@@ -385,7 +349,6 @@ INSTRUCTIE: Scan het bovenstaande gesprek op antwoorden. Stel GEEN vragen over z
               stop();
               setIsSpeaking(false);
             } else if (messages.length > 0) {
-              // Read the last assistant message
               const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant');
               if (lastAssistantMsg) {
                 setIsSpeaking(true);
@@ -400,16 +363,14 @@ INSTRUCTIE: Scan het bovenstaande gesprek op antwoorden. Stel GEEN vragen over z
         </Button>
       </div>
 
-      {/* Permission Alert */}
       {microphonePermission === 'denied' && (
         <Alert variant="destructive" className="m-4 border-2 rounded-xl">
           <AlertDescription className="font-medium text-base py-1">
-            Toegang tot de microfoon is geweigerd. Gebruik het toetsenbord of sta toegang toe in je browserinstellingen (klik op het slotje in de adresbalk).
+            Toegang tot de microfoon is geweigerd. Gebruik het toetsenbord of sta toegang toe in je browserinstellingen.
           </AlertDescription>
         </Alert>
       )}
 
-      {/* Chat Area */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-32">
         <div className="space-y-6">
           {messages.map((msg, index) => (
@@ -430,11 +391,8 @@ INSTRUCTIE: Scan het bovenstaande gesprek op antwoorden. Stel GEEN vragen over z
         </div>
       </div>
 
-      {/* Input Area */}
       <div className="bg-white border-t p-4 pb-8 sm:pb-4 fixed bottom-0 w-full max-w-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)] rounded-t-3xl">
         <div className="flex flex-col gap-4">
-          
-          {/* Status indicators */}
           <div className="h-24 flex items-center justify-center">
             {isListening ? (
               <div className="w-full flex flex-col items-center gap-2">
@@ -516,7 +474,6 @@ INSTRUCTIE: Scan het bovenstaande gesprek op antwoorden. Stel GEEN vragen over z
             )}
           </div>
 
-          {/* Toggle buttons */}
           <div className="flex justify-center gap-2">
             {!useKeyboard ? (
               <Button
