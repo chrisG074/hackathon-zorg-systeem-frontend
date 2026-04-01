@@ -4,14 +4,12 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { ConversationBubble } from '../components/ConversationBubble';
 import { VoiceVisualizer } from '../components/VoiceVisualizer';
-import { BodyMap } from '../components/BodyMap';
 import {
   ArrowLeft,
   Mic,
   MicOff,
   Keyboard,
   Send,
-  AlertTriangle,
   Volume2,
 } from 'lucide-react';
 import { ConversationMessage, ReportType } from '../types.js';
@@ -20,55 +18,6 @@ import { Card } from '../components/ui/card';
 import { toast } from 'sonner';
 import { useSpeech } from '../hooks/useSpeech';
 
-const facilitairQuestions = [
-  { field: 'location', question: 'In welke kamer of ruimte is het probleem?', type: 'text' },
-  {
-    field: 'equipmentType',
-    question: 'Wat voor hulpmiddel of apparaat betreft het?',
-    type: 'select',
-    options: ['Hoog-laag bed', 'Tillift', 'Rolstoel', 'Douchetoilet', 'Anders'],
-  },
-  {
-    field: 'isUrgent',
-    question: 'Is er sprake van spoed tegen een meerprijs van 152,75?',
-    type: 'boolean',
-    showUrgencyWarning: true,
-  },
-  { field: 'description', question: 'Kun je het probleem kort omschrijven?', type: 'text' },
-];
-
-const micQuestions = [
-  { field: 'clientName', question: 'Wat is de naam van de cliënt?', type: 'text' },
-  {
-    field: 'bodyLocation',
-    question: 'Waar op het lichaam is het letsel? Klik op de lichaamskaart.',
-    type: 'bodymap',
-  },
-  {
-    field: 'healthComplaints',
-    question: 'Welke gezondheidsklachten zijn er?',
-    type: 'select',
-    options: ['Pijn', 'Blauwe plek', 'Wond', 'Botbreuk', 'Misselijkheid', 'Bloeding'],
-  },
-  { field: 'description', question: 'Wat is er precies gebeurd?', type: 'text' },
-];
-
-const mimQuestions = [
-  {
-    field: 'category',
-    question: 'Wat voor incident betreft het?',
-    type: 'select',
-    options: ['Agressie', 'Valpartij', 'Prikincident', 'Overbelasting', 'Anders'],
-  },
-  { field: 'description', question: 'Kun je toelichten wat er is gebeurd?', type: 'text' },
-  { field: 'supervisor', question: 'Wie is je leidinggevende?', type: 'text' },
-  {
-    field: 'workAbsence',
-    question: 'Is er sprake van arbeidsverzuim?',
-    type: 'boolean',
-  },
-];
-
 export default function VoiceConversation() {
   const navigate = useNavigate();
   const { type } = useParams();
@@ -76,22 +25,14 @@ export default function VoiceConversation() {
   const [isListening, setIsListening] = useState(false);
   const [useKeyboard, setUseKeyboard] = useState(false);
   const [currentInput, setCurrentInput] = useState('');
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [formData, setFormData] = useState({})
-  const [showUrgencyAlert, setShowUrgencyAlert] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [microphonePermission, setMicrophonePermission] = useState('prompt');
+  const [aiLoading, setAiLoading] = useState(false);
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
   const hasSpokenIntroRef = useRef(false);
   const { speak, stop } = useSpeech();
-
-  const questions =
-    type === 'facilitair'
-      ? facilitairQuestions
-      : type === 'mic'
-      ? micQuestions
-      : mimQuestions;
 
   // Check microphone permission on mount
   useEffect(() => {
@@ -105,13 +46,78 @@ export default function VoiceConversation() {
             setMicrophonePermission(result.state);
           };
         }
-      } catch (error) {
+      } catch {
         console.log('Permission API not supported');
       }
     };
     
     checkMicrophonePermission();
   }, []);
+
+  // Initialize speech recognition when permission is granted
+  useEffect(() => {
+    if (microphonePermission === 'granted') {
+      initializeSpeechRecognition();
+    }
+  }, [microphonePermission]);
+
+  // Send message to AI and get response
+  const sendToAi = async (userMessage) => {
+    try {
+      setAiLoading(true);
+      
+      // Create context message with incident type
+      let typeContext = '';
+      if (type === 'facilitair') {
+        typeContext = 'Dit is een facilitair melding.';
+      } else if (type === 'mic') {
+        typeContext = 'Dit is een MIC melding.';
+      } else if (type === 'mim') {
+        typeContext = 'Dit is een MIM melding.';
+      }
+      
+      const response = await fetch('http://localhost:5258/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          prompt: typeContext + userMessage,
+          type: type,
+          context: formData
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API responded with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Try to parse JSON response from LM Studio format
+      let aiReply = '';
+      try {
+        if (typeof data === 'string') {
+          const parsed = JSON.parse(data);
+          aiReply = parsed.choices?.[0]?.message?.content || data;
+        } else if (data.choices) {
+          aiReply = data.choices[0].message.content;
+        } else {
+          aiReply = data.reply || data.message || JSON.stringify(data);
+        }
+      } catch {
+        aiReply = typeof data === 'string' ? data : JSON.stringify(data);
+      }
+      
+      return aiReply;
+    } catch (error) {
+      console.error('Error calling AI:', error);
+      toast.error('Fout bij AI communicatie. Controleer of de server actief is.', {
+        duration: 4000,
+      });
+      return null;
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   // Request microphone access
   const requestMicrophoneAccess = async () => {
@@ -123,9 +129,7 @@ export default function VoiceConversation() {
       toast.success('Microfoon toegang verleend!', {
         duration: 2000,
       });
-      
-      // Initialize speech recognition after permission granted
-      initializeSpeechRecognition();
+      // Speech recognition will initialize automatically via the useEffect that watches microphonePermission
       
       return true;
     } catch (error) {
@@ -140,6 +144,11 @@ export default function VoiceConversation() {
 
   const initializeSpeechRecognition = () => {
     if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+      return;
+    }
+
+    // Don't reinitialize if already initialized
+    if (recognitionRef.current) {
       return;
     }
 
@@ -197,30 +206,25 @@ export default function VoiceConversation() {
   };
 
   useEffect(() => {
-    // Ask first question (but don't initialize speech recognition yet)
+    // Start AI conversation
     if (messages.length === 0) {
-      const firstQuestion = questions[0];
+      const introMessage = `Hallo! Ik ben SIMO, je AI assistent. Ik zal je helpen met het indienen van je melding voor ${type}. Kun je alsjeblieft specifiek vertellen wat er is gebeurd?`;
+
       setMessages([
         {
           role: 'assistant',
-          content: firstQuestion.question,
-          fieldName: firstQuestion.field,
+          content: introMessage,
+          fieldName: null,
         },
       ]);
 
-      // Only speak intro if TTS is available (no microphone needed for TTS)
+      // Only speak intro if TTS is available
       if (!hasSpokenIntroRef.current && 'speechSynthesis' in window) {
         hasSpokenIntroRef.current = true;
         setTimeout(() => {
           setIsSpeaking(true);
-          const introText = 'Welkom bij de spraakmelding. Klik op "Microfoon Toegang Toestaan" om spraakherkenning te gebruiken, of klik op het toetsenbord-icoon om te typen.';
-          speak(introText, () => {
+          speak(introMessage, () => {
             setIsSpeaking(false);
-            // Automatically speak the first question after intro
-            setTimeout(() => {
-              setIsSpeaking(true);
-              speak(firstQuestion.question, () => setIsSpeaking(false));
-            }, 500);
           });
         }, 500);
       }
@@ -230,13 +234,14 @@ export default function VoiceConversation() {
       if (recognitionRef.current) {
         try {
           recognitionRef.current.stop();
-        } catch (e) {
+        } catch {
           // Ignore errors on cleanup
         }
       }
       stop();
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -254,6 +259,7 @@ export default function VoiceConversation() {
         }, 300);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages]);
 
   const startListening = () => {
@@ -286,7 +292,7 @@ export default function VoiceConversation() {
           try {
             recognitionRef.current.start();
             setIsListening(true);
-          } catch (e) {
+          } catch {
             toast.error('Kon niet luisteren. Herlaad de pagina en probeer opnieuw.');
           }
         }, 100);
@@ -303,76 +309,45 @@ export default function VoiceConversation() {
     }
   };
 
-  const handleSubmitAnswer = () => {
+  const handleSubmitAnswer = async () => {
     if (!currentInput.trim()) return;
 
-    const currentQuestion = questions[currentQuestionIndex];
+    // Stop speaking when submitting
+    stop();
+    setIsSpeaking(false);
+
+    const userMessage = currentInput;
     
-    // Add user message
+    // Add user message to conversation
     setMessages((prev) => [
       ...prev,
-      { role: 'user', content: currentInput, fieldName: currentQuestion.field },
+      { role: 'user', content: userMessage, fieldName: null },
     ]);
+
+    setCurrentInput('');
 
     // Save to form data
     const newFormData = { ...formData };
-    
-    if (currentQuestion.type === 'boolean') {
-      const answer = currentInput.toLowerCase();
-      newFormData[currentQuestion.field] = answer.includes('ja') || answer.includes('yes');
-    } else if (currentQuestion.field === 'healthComplaints') {
-      // For multi-select, just store as array
-      newFormData[currentQuestion.field] = [currentInput];
-    } else {
-      newFormData[currentQuestion.field] = currentInput;
-    }
-    
+    newFormData[`answer_${Object.keys(formData).length}`] = userMessage;
     setFormData(newFormData);
-    setCurrentInput('');
 
-    // Check for urgency warning
-    if (currentQuestion.showUrgencyWarning && newFormData[currentQuestion.field]) {
-      setShowUrgencyAlert(true);
-      setTimeout(() => setShowUrgencyAlert(false), 5000);
-    }
-
-    // Move to next question or complete
-    if (currentQuestionIndex < questions.length - 1) {
-      const nextQuestion = questions[currentQuestionIndex + 1];
+    // Send to SIMO and get response
+    const aiResponse = await sendToAi(userMessage);
+    
+    if (aiResponse) {
+      // Add SIMO's response to conversation
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: aiResponse, fieldName: null },
+      ]);
+      
+      // Speak the response
       setTimeout(() => {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: 'assistant',
-            content: nextQuestion.question,
-            fieldName: nextQuestion.field,
-          },
-        ]);
-        setCurrentQuestionIndex(currentQuestionIndex + 1);
-      }, 500);
-    } else {
-      // All questions answered
-      setTimeout(() => {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: 'assistant',
-            content: 'Bedankt! Ik heb alle informatie. Laten we je melding nog even controleren.',
-          },
-        ]);
-        setTimeout(() => {
-          navigate('/review', { state: { formData, type } });
-        }, 1500);
-      }, 500);
+        setIsSpeaking(true);
+        speak(aiResponse, () => setIsSpeaking(false));
+      }, 300);
     }
   };
-
-  const handleBodyMapSelect = (locations) => {
-    setCurrentInput(locations.join(', '));
-  };
-
-  const currentQuestion = questions[currentQuestionIndex];
-  const isBodyMapQuestion = currentQuestion?.type === 'bodymap';
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -399,15 +374,6 @@ export default function VoiceConversation() {
             <Keyboard className="h-4 w-4" />
           </Button>
         </div>
-
-        {showUrgencyAlert && (
-          <Alert className="mb-4 bg-orange-50 border-orange-300">
-            <AlertTriangle className="h-4 w-4 text-orange-600" />
-            <AlertDescription className="text-orange-800">
-              Let op: Je kiest voor spoed (€152,75). Zorg dat je coach/coördinator akkoord is.
-            </AlertDescription>
-          </Alert>
-        )}
 
         {/* Microphone Permission Alert */}
         {(microphonePermission === 'denied' || microphonePermission === 'prompt') && !useKeyboard && (
@@ -470,15 +436,15 @@ export default function VoiceConversation() {
             <ConversationBubble key={index} message={message} />
           ))}
           
-          {isBodyMapQuestion && messages.length > 0 && (
-            <Card className="p-6">
-              <BodyMap
-                selectedLocations={
-                  currentInput ? currentInput.split(', ') : []
-                }
-                onLocationSelect={handleBodyMapSelect}
-              />
-            </Card>
+          {aiLoading && (
+            <div className="flex items-center gap-2 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="flex gap-1">
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+              </div>
+              <span className="text-sm text-gray-600">SIMO denkt na...</span>
+            </div>
           )}
           
           <div ref={messagesEndRef} />
@@ -488,23 +454,30 @@ export default function VoiceConversation() {
         <div className="space-y-4">
           <VoiceVisualizer isListening={isListening} />
 
-          {useKeyboard || isBodyMapQuestion ? (
+          {useKeyboard ? (
             <div className="flex gap-2">
               <Input
                 value={currentInput}
                 onChange={(e) => setCurrentInput(e.target.value)}
                 placeholder="Type hier je antwoord..."
-                onKeyPress={(e) => e.key === 'Enter' && handleSubmitAnswer()}
+                onKeyPress={(e) => e.key === 'Enter' && !aiLoading && handleSubmitAnswer()}
                 className="flex-1 h-14 text-lg"
-                disabled={isBodyMapQuestion}
+                disabled={aiLoading}
               />
               <Button
                 size="lg"
                 onClick={handleSubmitAnswer}
-                disabled={!currentInput.trim()}
+                disabled={!currentInput.trim() || aiLoading}
                 className="h-14 px-8"
               >
-                <Send className="h-5 w-5" />
+                {aiLoading ? (
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
+                  </div>
+                ) : (
+                  <Send className="h-5 w-5" />
+                )}
               </Button>
             </div>
           ) : (
@@ -513,7 +486,8 @@ export default function VoiceConversation() {
                 <Button
                   size="lg"
                   onClick={startListening}
-                  className="h-20 w-20 rounded-full bg-blue-600 hover:bg-blue-700"
+                  disabled={aiLoading}
+                  className="h-20 w-20 rounded-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
                 >
                   <Mic className="h-8 w-8" />
                 </Button>
@@ -531,10 +505,20 @@ export default function VoiceConversation() {
                 <Button
                   size="lg"
                   onClick={handleSubmitAnswer}
+                  disabled={aiLoading}
                   className="h-20 px-8"
                 >
-                  <Send className="h-5 w-5 mr-2" />
-                  Verzenden
+                  {aiLoading ? (
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
+                    </div>
+                  ) : (
+                    <>
+                      <Send className="h-5 w-5 mr-2" />
+                      Verzenden
+                    </>
+                  )}
                 </Button>
               )}
             </div>
@@ -543,7 +527,17 @@ export default function VoiceConversation() {
           {currentInput && (
             <Card className="p-4 bg-blue-50 border-blue-200">
               <p className="text-sm text-gray-600 mb-1">Je hebt gezegd:</p>
-              <p className="text-base font-medium">{currentInput}</p>
+              <div className="flex justify-between items-start gap-4">
+                <p className="text-base font-medium flex-1">{currentInput}</p>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setCurrentInput('')}
+                  className="text-xs"
+                >
+                  Wissen
+                </Button>
+              </div>
             </Card>
           )}
         </div>

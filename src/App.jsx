@@ -5,7 +5,6 @@ import { Toaster } from 'sonner';
 // Components
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
-import { AiAssistant } from './components/AiAssistant'; 
 
 // Pages
 import Dashboard from './pages/Dashboard';
@@ -19,9 +18,6 @@ export default function App() {
   return (
     <Router>
       <Toaster position="top-right" richColors /> 
-      
-      {/* Geïmporteerd vanuit je standalone AiAssistant.tsx */}
-      <AiAssistant /> 
 
       <Routes>
         {/* === Publieke Routes === */}
