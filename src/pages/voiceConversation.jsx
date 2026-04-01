@@ -63,61 +63,66 @@ export default function VoiceConversation() {
 
   // Send message to AI and get response
   const sendToAi = async (userMessage) => {
-    try {
-      setAiLoading(true);
-      
-      // Create context message with incident type
-      let typeContext = '';
-      if (type === 'facilitair') {
-        typeContext = 'Dit is een facilitair melding.';
-      } else if (type === 'mic') {
-        typeContext = 'Dit is een MIC melding.';
-      } else if (type === 'mim') {
-        typeContext = 'Dit is een MIM melding.';
-      }
-      
-      const response = await fetch('http://localhost:5258/api/ai/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          prompt: typeContext + userMessage,
-          type: type,
-          context: formData
-        })
-      });
+  try {
+    setAiLoading(true);
+    
+    let typeContext = '';
+    if (type === 'facilitair') typeContext = 'TYPE: Facilitair melding.';
+    else if (type === 'mic') typeContext = 'TYPE: MIC (Melding Incident Cliënt).';
+    else if (type === 'mim') typeContext = 'TYPE: MIM (Melding Incident Medewerker).';
 
-      if (!response.ok) {
-        throw new Error(`API responded with status ${response.status}`);
-      }
+    // 1. Bouw de chatgeschiedenis op uit de bestaande messages state
+    // We filteren de introductie er even uit om de focus op de feiten te houden
+    const history = messages
+      .filter((_, index) => index > 0) // Slaat de eerste SIMO intro over voor minder ruis
+      .map(m => `${m.role === 'user' ? 'Gebruiker' : 'Assistent'}: ${m.content}`)
+      .join('\n');
 
-      const data = await response.json();
-      
-      // Try to parse JSON response from LM Studio format
-      let aiReply = '';
-      try {
-        if (typeof data === 'string') {
-          const parsed = JSON.parse(data);
-          aiReply = parsed.choices?.[0]?.message?.content || data;
-        } else if (data.choices) {
-          aiReply = data.choices[0].message.content;
-        } else {
-          aiReply = data.reply || data.message || JSON.stringify(data);
-        }
-      } catch {
-        aiReply = typeof data === 'string' ? data : JSON.stringify(data);
-      }
-      
-      return aiReply;
-    } catch (error) {
-      console.error('Error calling AI:', error);
-      toast.error('Fout bij AI communicatie. Controleer of de server actief is.', {
-        duration: 4000,
-      });
-      return null;
-    } finally {
-      setAiLoading(false);
+    // 2. Maak de definitieve prompt
+    // We vertellen de AI expliciet dat hij in de geschiedenis moet kijken
+    const fullPrompt = `${typeContext}
+Hieronder volgt het gesprek tot nu toe. Gebruik de informatie uit eerdere berichten om te bepalen wat je al weet.
+
+GESPREK:
+${history}
+Gebruiker: ${userMessage}
+
+INSTRUCTIE: Scan het bovenstaande gesprek op antwoorden. Stel GEEN vragen over zaken die hierboven al zijn genoemd (zoals namen, tijden of locaties).`;
+
+    const response = await fetch('http://localhost:5258/api/Ai/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        prompt: fullPrompt,
+        type: type,
+        context: formData // formData blijft behouden voor je backend opslag
+      })
+    });
+
+    if (!response.ok) throw new Error(`API responded with status ${response.status}`);
+
+    const data = await response.json();
+    
+    let aiReply = '';
+    // Parsing voor Gemini 3.1 Thinking
+    if (data.candidates && data.candidates[0]?.content?.parts) {
+      const parts = data.candidates[0].content.parts;
+      // Zoek de tekst part (negeer de thought part)
+      const textPart = parts.find(p => p.text && !p.thought);
+      aiReply = textPart ? textPart.text : "Geen antwoord gevonden.";
+    } else {
+      aiReply = data.message || "Fout bij verwerken AI antwoord.";
     }
-  };
+    
+    return aiReply;
+  } catch (error) {
+    console.error('Error calling AI:', error);
+    toast.error('Fout bij AI communicatie.');
+    return null;
+  } finally {
+    setAiLoading(false);
+  }
+};
 
   // Request microphone access
   const requestMicrophoneAccess = async () => {

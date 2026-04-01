@@ -14,6 +14,7 @@ import ReportTypeSelection from './pages/nieuwe-melding';
 import VoiceConversation from './pages/voiceConversation';
 import Overzicht from './pages/Overzicht';
 import ReviewReport from './pages/reviewReport';
+import AdminPanel from './pages/AdminPanel'; // <-- Nieuwe import voor het Admin Paneel
 
 export default function App() {
   return (
@@ -29,22 +30,27 @@ export default function App() {
         {/* === Beveiligde Routes (Met globale Layout/Navbar) === */}
         <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           
-          {/* Standaard beveiligde pagina's */}
+          {/* Standaard beveiligde pagina's (Voor iedereen) */}
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/nieuwe-melding" element={<ReportTypeSelection />} />
-          <Route path="/overzicht" element={<Overzicht />} />
           <Route path="/conversatie/:type" element={<VoiceConversation />} />
           <Route path="/review" element={<ReviewReport />} />
 
-          {/* Admin Route (Extra check voor adminOnly binnen de layout) */}
+          {/* Admin Routes (Extra check voor adminOnly) */}
           <Route 
-            path="/admin-overzicht" 
+            path="/overzicht" 
             element={
               <ProtectedRoute adminOnly={true}>
-                <div className="p-8 text-center">
-                  <h1 className="text-2xl font-bold">Admin Paneel</h1>
-                  <p>Alleen toegankelijk voor beheerders.</p>
-                </div>
+                <Overzicht />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/admin-paneel" 
+            element={
+              <ProtectedRoute adminOnly={true}>
+                <AdminPanel />
               </ProtectedRoute>
             } 
           />
