@@ -302,19 +302,59 @@ export default function VoiceConversation() {
 
     const aiResponseContent = await sendToAi(userInput);
     
-    if (aiResponseContent) {
-      const aiMessage = {
-        role: 'assistant',
-        content: aiResponseContent,
-        fieldName: null,
-      };
+    if (aiResponse) {
+      // Check if the form is complete
+      if (aiResponse.includes('[COMPLEET]')) {
+        const parts = aiResponse.split('[COMPLEET]');
+        const jsonString = parts[1].trim();
 
-      setMessages((prev) => [...prev, aiMessage]);
+        try {
+          const aiData = JSON.parse(jsonString);
+          
+          // Map AI data to the specific field names expected by ReviewReport
+          let mappedData = {};
+          
+          if (type === 'facilitair') {
+            mappedData = {
+              location: aiData.location,
+              equipmentType: aiData.equipment,
+              isUrgent: aiData.isUrgent,
+              description: aiData.description
+            };
+          } else if (type === 'mic') {
+            mappedData = {
+              clientName: aiData.clientName,
+              bodyLocation: aiData.injury,
+              healthComplaints: aiData.clientBehavior,
+              description: `${aiData.dateTime}: ${aiData.description}. Actie: ${aiData.followUp}`
+            };
+          } else if (type === 'mim') {
+            mappedData = {
+              category: aiData.incidentType,
+              description: aiData.description,
+              supervisor: aiData.othersInvolved,
+              workAbsence: aiData.needsSupport
+            };
+          }
 
-      setIsSpeaking(true);
-      speak(aiResponseContent, () => {
-        setIsSpeaking(false);
-      });
+          navigate('/review', { state: { formData: mappedData, type: type } });
+          return;
+        } catch (e) {
+          console.error("Fout bij het verwerken van de melding", e);
+        }
+      }
+
+      // Add SIMO's response to conversation
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: aiResponse, fieldName: null },
+      ]);
+      
+      // Speak the response
+      setTimeout(() => {
+        setIsSpeaking(true);
+        speak(aiResponse, () => setIsSpeaking(false));
+      }, 300);
     }
   };
 
