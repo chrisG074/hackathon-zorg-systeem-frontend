@@ -43,7 +43,7 @@ export default function VoiceConversation() {
         if (navigator.permissions) {
           const result = await navigator.permissions.query({ name: 'microphone' });
           setMicrophonePermission(result.state);
-          
+
           result.onchange = () => {
             setMicrophonePermission(result.state);
           };
@@ -52,7 +52,7 @@ export default function VoiceConversation() {
         console.log('Permission API not supported');
       }
     };
-    
+
     checkMicrophonePermission();
   }, []);
 
@@ -65,7 +65,7 @@ export default function VoiceConversation() {
   const sendToAi = async (userMessage) => {
     try {
       setAiLoading(true);
-      
+
       let typeContext = '';
       if (type === 'facilitair') typeContext = 'TYPE: Facilitair melding.';
       else if (type === 'mic') typeContext = 'TYPE: MIC (Melding Incident Cliënt).';
@@ -82,17 +82,17 @@ export default function VoiceConversation() {
       const response = await fetch(`${API_URL}/api/Ai/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           prompt: fullPrompt,
           type: type,
-          context: formData 
+          context: formData
         })
       });
 
       if (!response.ok) throw new Error(`API responded with status ${response.status}`);
 
       const data = await response.json();
-      
+
       let aiReply = '';
       if (data.candidates && data.candidates[0]?.content?.parts) {
         const parts = data.candidates[0].content.parts;
@@ -101,7 +101,7 @@ export default function VoiceConversation() {
       } else {
         aiReply = data.message || "Fout bij verwerken AI antwoord.";
       }
-      
+
       return aiReply;
     } catch (error) {
       console.error('Error calling AI:', error);
@@ -159,9 +159,9 @@ export default function VoiceConversation() {
     recognitionRef.current.onerror = (event) => {
       setIsListening(false);
       console.error('Speech recognition error:', event.error);
-      
+
       let errorMessage = 'Spraakherkenning mislukt. Probeer opnieuw.';
-      
+
       switch (event.error) {
         case 'no-speech':
           errorMessage = 'Geen spraak gedetecteerd. Probeer opnieuw en spreek duidelijker.';
@@ -232,7 +232,7 @@ export default function VoiceConversation() {
       const granted = await requestMicrophoneAccess();
       if (!granted) return;
     }
-    
+
     if (microphonePermission === 'denied') {
       toast.error('Microfoon toegang is geblokkeerd. Sta toegang toe in de adresbalk van je browser.', {
         duration: 5000,
@@ -247,7 +247,7 @@ export default function VoiceConversation() {
 
     setCurrentInput('');
     setIsListening(true);
-    
+
     if (!recognitionRef.current) {
       initializeSpeechRecognition();
     }
@@ -302,7 +302,7 @@ export default function VoiceConversation() {
 
     // Send to AI and wait for response
     const aiResponse = await sendToAi(userInput);
-    
+
     if (aiResponse) {
       // Check if the form is complete
       if (aiResponse.includes('[COMPLEET]')) {
@@ -311,37 +311,13 @@ export default function VoiceConversation() {
 
         try {
           const aiData = JSON.parse(jsonString);
-          
-          // Map AI data to the specific field names expected by ReviewReport
-          let mappedData = {};
-          
-          if (type === 'facilitair') {
-            mappedData = {
-              location: aiData.location,
-              equipmentType: aiData.equipment,
-              isUrgent: aiData.isUrgent,
-              description: aiData.description
-            };
-          } else if (type === 'mic') {
-            mappedData = {
-              clientName: aiData.clientName,
-              bodyLocation: aiData.injury,
-              healthComplaints: aiData.clientBehavior,
-              description: `${aiData.dateTime}: ${aiData.description}. Actie: ${aiData.followUp}`
-            };
-          } else if (type === 'mim') {
-            mappedData = {
-              category: aiData.incidentType,
-              description: aiData.description,
-              supervisor: aiData.othersInvolved,
-              workAbsence: aiData.needsSupport
-            };
-          }
+          let mappedData = { ...aiData }; // We nemen de AI data direct over
 
+          // Navigeer naar /review (zorg dat de route exact matcht)
           navigate('/review', { state: { formData: mappedData, type: type } });
           return;
         } catch (e) {
-          console.error("Fout bij het verwerken van de melding", e);
+          console.error("JSON parse error", e);
         }
       }
 
@@ -350,7 +326,7 @@ export default function VoiceConversation() {
         ...prev,
         { role: 'assistant', content: aiResponse, fieldName: null },
       ]);
-      
+
       // Speak the response
       setTimeout(() => {
         setIsSpeaking(true);
@@ -437,7 +413,7 @@ export default function VoiceConversation() {
       {/* Input Area */}
       <div className="bg-white border-t p-4 pb-4 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] shrink-0">
         <div className="flex flex-col gap-4">
-          
+
           {/* Status indicators */}
           <div className="flex items-center justify-center">
             {isListening ? (
@@ -472,8 +448,8 @@ export default function VoiceConversation() {
                     className="flex-1 h-14 text-lg"
                     disabled={aiLoading}
                   />
-                  <Button 
-                    size="lg" 
+                  <Button
+                    size="lg"
                     onClick={handleSubmitAnswer}
                     disabled={!currentInput.trim() || aiLoading}
                     className="h-14 px-8"
