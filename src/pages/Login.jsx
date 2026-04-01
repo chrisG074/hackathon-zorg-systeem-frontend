@@ -106,7 +106,19 @@ export default function Login() {
           </Button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-slate-500">
+        {/* Nieuwe sectie met de Registreer knop */}
+        <div className="mt-6 text-center text-sm">
+          <span className="text-muted-foreground">Nog geen account? </span>
+          <button 
+            type="button"
+            onClick={() => navigate('/register')}
+            className="text-primary font-semibold hover:underline"
+          >
+            Registreer hier
+          </button>
+        </div>
+
+        <div className="mt-4 text-center text-xs text-slate-500">
           <p>Problemen met inloggen? Neem contact op met IT support.</p>
         </div>
       </Card>
