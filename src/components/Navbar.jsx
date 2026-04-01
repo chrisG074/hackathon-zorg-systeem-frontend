@@ -1,11 +1,13 @@
+import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from './ui/button';
-import { Building2, LogOut, List, LayoutDashboard, ShieldCheck } from 'lucide-react';
+import { Building2, LogOut, List, LayoutDashboard, ShieldCheck, Menu, X, User } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const userEmail = localStorage.getItem('userEmail') || 'gebruiker@zorg.nl';
   const userRoles = JSON.parse(localStorage.getItem('userRoles') || '[]');
@@ -26,28 +28,41 @@ export default function Navbar() {
     navigate('/login');
   };
 
-  // Standaard nav-items (zichtbaar voor iedereen)
+  // Navigeer en sluit het mobiele menu direct
+  const handleNavigation = (path) => {
+    navigate(path);
+    setIsMobileMenuOpen(false);
+  };
+
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
   ];
 
-  // Alleen toevoegen als de gebruiker een Admin is
   if (isAdmin) {
     navItems.push({ name: 'Overzicht', path: '/overzicht', icon: List });
     navItems.push({ name: 'Admin Paneel', path: '/admin-paneel', icon: ShieldCheck });
   }
 
   return (
-    <nav className="bg-primary shadow-lg border-b border-primary-foreground/10">
+    <nav className="sticky top-0 z-50 bg-primary shadow-lg border-b border-primary-foreground/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
+          {/* Logo Sectie */}
           <div className="flex items-center">
-            <div className="flex-shrink-0 flex items-center cursor-pointer" onClick={() => navigate('/dashboard')}>
-              <Building2 className="h-8 w-8 text-primary-foreground" />
+            <div 
+              className="flex-shrink-0 flex items-center cursor-pointer group" 
+              onClick={() => handleNavigation('/dashboard')}
+            >
+              <div className="bg-white/10 p-2 rounded-xl group-hover:bg-white/20 transition-colors">
+                <Building2 className="h-6 w-6 text-primary-foreground" />
+              </div>
               <span className="ml-3 text-xl font-bold text-primary-foreground tracking-tight">SoftZorg</span>
             </div>
-            
-            <div className="hidden md:ml-8 md:flex md:space-x-2">
+          </div>
+
+          {/* Desktop Navigatie (Verborgen op mobiel) */}
+          <div className="hidden md:flex md:items-center md:space-x-4">
+            <div className="flex space-x-2 mr-4">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path;
@@ -55,8 +70,12 @@ export default function Navbar() {
                   <Button
                     key={item.path}
                     variant={isActive ? "secondary" : "ghost"}
-                    className={`flex items-center ${isActive ? "bg-white text-primary" : "text-primary-foreground hover:bg-primary-foreground/10"}`}
-                    onClick={() => navigate(item.path)}
+                    className={`flex items-center rounded-xl transition-all ${
+                      isActive 
+                        ? "bg-white text-primary shadow-sm" 
+                        : "text-primary-foreground hover:bg-primary-foreground/10 hover:text-white"
+                    }`}
+                    onClick={() => handleNavigation(item.path)}
                   >
                     <Icon className="h-4 w-4 mr-2" />
                     {item.name}
@@ -64,25 +83,97 @@ export default function Navbar() {
                 );
               })}
             </div>
+
+            {/* Desktop User Info & Logout */}
+            <div className="flex items-center border-l border-primary-foreground/20 pl-6 space-x-6">
+              <div className="text-right">
+                <p className="text-[10px] font-bold text-primary-foreground/70 uppercase tracking-wider">Ingelogd als</p>
+                <p className="text-sm font-semibold text-primary-foreground flex items-center gap-2">
+                  <User className="h-3 w-3" />
+                  {userName}
+                </p>
+              </div>
+              <Button 
+                variant="destructive" 
+                size="sm"
+                onClick={handleLogout}
+                className="bg-red-500/90 hover:bg-red-600 text-white border-none rounded-xl shadow-sm"
+              >
+                <LogOut className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Uitloggen</span>
+              </Button>
+            </div>
           </div>
 
-          <div className="hidden md:flex items-center space-x-4">
-            <div className="text-right mr-4 border-r border-primary-foreground/20 pr-4">
-              <p className="text-xs font-medium text-primary-foreground/70 uppercase tracking-wider">Ingelogd als</p>
-              <p className="text-sm font-bold text-primary-foreground">{userName}</p>
-            </div>
+          {/* Mobiele Hamburger Menu Knop */}
+          <div className="flex items-center md:hidden">
             <Button 
-              variant="destructive" 
-              size="sm"
-              onClick={handleLogout}
-              className="bg-red-500 hover:bg-red-600 text-white border-none"
+              variant="ghost" 
+              size="icon"
+              className="text-primary-foreground hover:bg-primary-foreground/10 rounded-xl"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
-              <LogOut className="h-4 w-4 mr-2" />
-              Uitloggen
+              {isMobileMenuOpen ? (
+                <X className="h-7 w-7" />
+              ) : (
+                <Menu className="h-7 w-7" />
+              )}
             </Button>
           </div>
         </div>
       </div>
+
+      {/* Mobiel Dropdown Menu */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden bg-primary border-t border-primary-foreground/10 absolute w-full shadow-2xl transition-all duration-300 ease-in-out">
+          <div className="px-4 pt-4 pb-6 space-y-4">
+            {/* Mobiele Navigatie Links */}
+            <div className="flex flex-col space-y-2">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.path;
+                return (
+                  <Button
+                    key={item.path}
+                    variant={isActive ? "secondary" : "ghost"}
+                    className={`flex items-center justify-start w-full rounded-xl h-14 text-base ${
+                      isActive 
+                        ? "bg-white text-primary font-bold shadow-sm" 
+                        : "text-primary-foreground hover:bg-primary-foreground/10"
+                    }`}
+                    onClick={() => handleNavigation(item.path)}
+                  >
+                    <Icon className="h-5 w-5 mr-3" />
+                    {item.name}
+                  </Button>
+                );
+              })}
+            </div>
+
+            {/* Mobiele User Info & Acties */}
+            <div className="border-t border-primary-foreground/20 pt-4 mt-4">
+              <div className="flex items-center px-2 mb-4">
+                <div className="bg-primary-foreground/10 p-3 rounded-full mr-4">
+                  <User className="h-6 w-6 text-primary-foreground" />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-primary-foreground/70 uppercase">Ingelogd als</p>
+                  <p className="text-lg font-bold text-primary-foreground">{userName}</p>
+                </div>
+              </div>
+              
+              <Button 
+                variant="destructive" 
+                className="w-full justify-start bg-red-500/90 hover:bg-red-600 text-white rounded-xl h-14 text-base"
+                onClick={handleLogout}
+              >
+                <LogOut className="h-5 w-5 mr-3" />
+                Uitloggen
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </nav>
   );
 }
