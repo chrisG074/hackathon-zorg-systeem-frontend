@@ -251,23 +251,21 @@ export default function VoiceConversation() {
     }
 
     try {
-      recognitionRef.current?.start();
+      // Ensure any previous recognition session is stopped before starting a new one
+      recognitionRef.current?.abort();
+      // Small delay to allow proper cleanup
+      setTimeout(() => {
+        try {
+          recognitionRef.current?.start();
+        } catch (error) {
+          console.error('Failed to start speech recognition:', error);
+          setIsListening(false);
+          toast.error('Kon microfoon niet starten. Probeer het opnieuw.');
+        }
+      }, 50);
     } catch (error) {
       console.error('Failed to start speech recognition:', error);
       setIsListening(false);
-      
-      if (error.name === 'InvalidStateError') {
-        recognitionRef.current?.abort();
-        setTimeout(() => {
-          try {
-            recognitionRef.current?.start();
-            setIsListening(true);
-          } catch (retryError) {
-            console.error('Retry failed:', retryError);
-            toast.error('Kon microfoon niet starten. Probeer de pagina te vernieuwen.');
-          }
-        }, 100);
-      }
     }
   };
 
