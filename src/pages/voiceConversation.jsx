@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable no-unused-vars */
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { Button } from '../components/ui/button';
@@ -251,23 +253,21 @@ export default function VoiceConversation() {
     }
 
     try {
-      recognitionRef.current?.start();
+      // Ensure any previous recognition session is stopped before starting a new one
+      recognitionRef.current?.abort();
+      // Small delay to allow proper cleanup
+      setTimeout(() => {
+        try {
+          recognitionRef.current?.start();
+        } catch (error) {
+          console.error('Failed to start speech recognition:', error);
+          setIsListening(false);
+          toast.error('Kon microfoon niet starten. Probeer het opnieuw.');
+        }
+      }, 50);
     } catch (error) {
       console.error('Failed to start speech recognition:', error);
       setIsListening(false);
-      
-      if (error.name === 'InvalidStateError') {
-        recognitionRef.current?.abort();
-        setTimeout(() => {
-          try {
-            recognitionRef.current?.start();
-            setIsListening(true);
-          } catch (retryError) {
-            console.error('Retry failed:', retryError);
-            toast.error('Kon microfoon niet starten. Probeer de pagina te vernieuwen.');
-          }
-        }, 100);
-      }
     }
   };
 
@@ -300,7 +300,8 @@ export default function VoiceConversation() {
       },
     ]);
 
-    const aiResponseContent = await sendToAi(userInput);
+    // Send to AI and wait for response
+    const aiResponse = await sendToAi(userInput);
     
     if (aiResponse) {
       // Check if the form is complete
@@ -361,7 +362,8 @@ export default function VoiceConversation() {
   const displayType = type ? type.charAt(0).toUpperCase() + type.slice(1) : '';
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-slate-50 flex flex-col max-w-3xl mx-auto w-full shadow-xl">
+    <div className="min-h-screen bg-slate-50 flex flex-col max-w-3xl mx-auto w-full shadow-xl">
+      {/* Header */}
       <div className="bg-primary text-primary-foreground p-4 flex items-center gap-4 sticky top-0 z-10 shadow-md">
         <Button
           variant="ghost"
@@ -411,7 +413,8 @@ export default function VoiceConversation() {
         </Alert>
       )}
 
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-32">
+      {/* Chat Area - flex-1 with overflow */}
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
         <div className="space-y-6">
           {messages.map((msg, index) => (
             <ConversationBubble key={index} message={msg} />
@@ -431,9 +434,12 @@ export default function VoiceConversation() {
         </div>
       </div>
 
-      <div className="bg-white border-t p-4 pb-8 sm:pb-4 fixed bottom-0 w-full max-w-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)] rounded-t-3xl">
+      {/* Input Area */}
+      <div className="bg-white border-t p-4 pb-4 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] shrink-0">
         <div className="flex flex-col gap-4">
-          <div className="h-24 flex items-center justify-center">
+          
+          {/* Status indicators */}
+          <div className="flex items-center justify-center">
             {isListening ? (
               <div className="w-full flex flex-col items-center gap-2">
                 <VoiceVisualizer isListening={true} />
@@ -441,14 +447,19 @@ export default function VoiceConversation() {
                   Ik luister... (Spreek nu)
                 </p>
                 {currentInput && (
-                  <p className="text-sm text-gray-500 truncate max-w-full px-4">
-                    "{currentInput}"
-                  </p>
+                  <div className="w-full flex gap-2 px-4">
+                    <textarea
+                      value={currentInput}
+                      readOnly
+                      className="flex-1 p-3 border rounded-lg resize-none bg-white text-sm"
+                      rows="2"
+                    />
+                  </div>
                 )}
               </div>
             ) : useKeyboard ? (
-              <div className="w-full h-full flex flex-col justify-end">
-                <p className="text-sm font-medium text-gray-600 mb-2 pl-1">
+              <div className="w-full flex flex-col gap-2">
+                <p className="text-sm font-medium text-gray-600 pl-1">
                   Typ je antwoord:
                 </p>
                 <div className="flex gap-2">
@@ -479,7 +490,7 @@ export default function VoiceConversation() {
                 </div>
               </div>
             ) : (
-              <div className="flex justify-center gap-4">
+              <div className="flex justify-center">
                 {!isListening ? (
                   <Button
                     size="lg"
@@ -499,20 +510,36 @@ export default function VoiceConversation() {
                     <MicOff className="h-8 w-8" />
                   </Button>
                 )}
-                
-                {currentInput && (
-                  <Button
-                    size="lg"
-                    onClick={handleSubmitAnswer}
-                    disabled={aiLoading}
-                    className="h-20 px-8 rounded-full bg-green-600 hover:bg-green-700"
-                  >
-                    Verstuur "{currentInput.substring(0, 15)}..."
-                  </Button>
-                )}
               </div>
             )}
           </div>
+
+          {currentInput && !isListening && !useKeyboard && (
+            <div className="flex gap-2 w-full px-4 items-stretch">
+              <textarea
+                value={currentInput}
+                readOnly
+                className="flex-1 p-3 border rounded-lg resize-none bg-gray-50 text-sm"
+                rows="3"
+              />
+              <Button
+                size="lg"
+                onClick={handleSubmitAnswer}
+                disabled={aiLoading}
+                className="px-8 rounded-lg bg-green-600 hover:bg-green-700 h-25"
+              >
+                {aiLoading ? (
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
+                  </div>
+                ) : (
+                  <Send className="h-5 w-5 mr-2" />
+                )}
+                Verstuur
+              </Button>
+            </div>
+          )}
 
           <div className="flex justify-center gap-2">
             {!useKeyboard ? (
