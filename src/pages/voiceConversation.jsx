@@ -152,9 +152,6 @@ export default function VoiceConversation() {
       const transcript = event.results[0][0].transcript;
       setCurrentInput(transcript);
       setIsListening(false);
-      toast.success('Spraak herkend!', {
-        duration: 1500,
-      });
     };
 
     recognitionRef.current.onerror = (event) => {
