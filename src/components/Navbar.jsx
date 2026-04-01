@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from './ui/button';
-import { Building2, LogOut, List, LayoutDashboard } from 'lucide-react';
+import { Building2, LogOut, List, LayoutDashboard, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Navbar() {
@@ -34,6 +34,7 @@ export default function Navbar() {
   // Alleen toevoegen als de gebruiker een Admin is
   if (isAdmin) {
     navItems.push({ name: 'Overzicht', path: '/overzicht', icon: List });
+    navItems.push({ name: 'Admin Paneel', path: '/admin-paneel', icon: ShieldCheck });
   }
 
   return (
