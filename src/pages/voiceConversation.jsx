@@ -34,6 +34,8 @@ export default function VoiceConversation() {
   const hasSpokenIntroRef = useRef(false);
   const { speak, stop } = useSpeech();
 
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5258';
+
   // Check microphone permission on mount
   useEffect(() => {
     const checkMicrophonePermission = async () => {
@@ -76,7 +78,7 @@ export default function VoiceConversation() {
         typeContext = 'Dit is een MIM melding.';
       }
       
-      const response = await fetch('http://localhost:5258/api/ai/chat', {
+      const response = await fetch(`${API_URL}/api/ai/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -232,314 +234,308 @@ export default function VoiceConversation() {
 
     return () => {
       if (recognitionRef.current) {
-        try {
-          recognitionRef.current.stop();
-        } catch {
-          // Ignore errors on cleanup
-        }
+        recognitionRef.current.abort();
       }
-      stop();
+      stop(); // Stop any ongoing speech when unmounting
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type]);
+  }, [type, speak, stop]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Speak new assistant messages
-  useEffect(() => {
-    if (messages.length > 0) {
-      const lastMessage = messages[messages.length - 1];
-      if (lastMessage.role === 'assistant' && messages.length > 1) {
-        // Don't speak the first question again since we handle it in the initial useEffect
-        setTimeout(() => {
-          setIsSpeaking(true);
-          speak(lastMessage.content, () => setIsSpeaking(false));
-        }, 300);
-      }
+  const startListening = async () => {
+    if (microphonePermission === 'prompt') {
+      const granted = await requestMicrophoneAccess();
+      if (!granted) return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messages]);
-
-  const startListening = () => {
-    if (!recognitionRef.current) {
-      toast.error('Spraakherkenning wordt niet ondersteund in je browser. Gebruik het toetsenbord.', {
-        duration: 4000,
+    
+    if (microphonePermission === 'denied') {
+      toast.error('Microfoon toegang is geblokkeerd. Sta toegang toe in de adresbalk van je browser.', {
+        duration: 5000,
       });
       return;
     }
 
-    // Stop any ongoing speech
-    stop();
-    setIsSpeaking(false);
-    
+    // Stop AI speech if we're interrupting it
+    if (isSpeaking) {
+      stop();
+      setIsSpeaking(false);
+    }
+
+    setCurrentInput('');
     setIsListening(true);
+    
+    // Ensure recognition is initialized
+    if (!recognitionRef.current) {
+      initializeSpeechRecognition();
+    }
+
     try {
-      recognitionRef.current.start();
-      toast.info('Luisteren... Spreek nu uw antwoord in.', {
-        duration: 2000,
-        icon: <Mic className="h-4 w-4" />
-      });
+      recognitionRef.current?.start();
     } catch (error) {
-      console.error('Failed to start recognition:', error);
+      console.error('Failed to start speech recognition:', error);
       setIsListening(false);
       
-      if (error && error.message && error.message.includes('already started')) {
-        // Recognition is already running, stop it first
-        recognitionRef.current.stop();
+      // If recognition is already started or in a weird state, abort and retry
+      if (error.name === 'InvalidStateError') {
+        recognitionRef.current?.abort();
         setTimeout(() => {
           try {
-            recognitionRef.current.start();
+            recognitionRef.current?.start();
             setIsListening(true);
-          } catch {
-            toast.error('Kon niet luisteren. Herlaad de pagina en probeer opnieuw.');
+          } catch (retryError) {
+            console.error('Retry failed:', retryError);
+            toast.error('Kon microfoon niet starten. Probeer de pagina te vernieuwen.');
           }
         }, 100);
-      } else {
-        toast.error('Kon niet luisteren. Controleer je microfoon toegang.');
       }
     }
   };
 
   const stopListening = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      setIsListening(false);
-    }
+    setIsListening(false);
+    recognitionRef.current?.stop();
   };
 
   const handleSubmitAnswer = async () => {
-    if (!currentInput.trim()) return;
+    if (!currentInput.trim() || aiLoading) return;
 
-    // Stop speaking when submitting
-    stop();
-    setIsSpeaking(false);
+    // Stop listening if active
+    if (isListening) {
+      stopListening();
+    }
 
-    const userMessage = currentInput;
-    
+    // Stop speaking if active
+    if (isSpeaking) {
+      stop();
+      setIsSpeaking(false);
+    }
+
+    const userInput = currentInput;
+    setCurrentInput(''); // Clear input immediately for better UX
+    setUseKeyboard(false); // Hide keyboard input if used
+
     // Add user message to conversation
     setMessages((prev) => [
       ...prev,
-      { role: 'user', content: userMessage, fieldName: null },
+      {
+        role: 'user',
+        content: userInput,
+      },
     ]);
 
-    setCurrentInput('');
-
-    // Save to form data
-    const newFormData = { ...formData };
-    newFormData[`answer_${Object.keys(formData).length}`] = userMessage;
-    setFormData(newFormData);
-
-    // Send to SIMO and get response
-    const aiResponse = await sendToAi(userMessage);
+    // Send to AI and wait for response
+    const aiResponseContent = await sendToAi(userInput);
     
-    if (aiResponse) {
-      // Add SIMO's response to conversation
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: aiResponse, fieldName: null },
-      ]);
-      
-      // Speak the response
-      setTimeout(() => {
-        setIsSpeaking(true);
-        speak(aiResponse, () => setIsSpeaking(false));
-      }, 300);
+    if (aiResponseContent) {
+      // Create new AI message
+      const aiMessage = {
+        role: 'assistant',
+        content: aiResponseContent,
+        fieldName: null,
+      };
+
+      // Add AI response to conversation
+      setMessages((prev) => [...prev, aiMessage]);
+
+      // Read response aloud
+      setIsSpeaking(true);
+      speak(aiResponseContent, () => {
+        setIsSpeaking(false);
+      });
     }
   };
 
+  // Format type for display
+  const displayType = type ? type.charAt(0).toUpperCase() + type.slice(1) : '';
+
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <div className="flex-1 max-w-4xl mx-auto w-full p-6 flex flex-col">
-        <div className="flex items-center justify-between mb-6">
-          <Button variant="ghost" onClick={() => navigate('/')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Annuleren
-          </Button>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-semibold capitalize">{type} Melding</h1>
-            {isSpeaking && (
-              <div className="flex items-center gap-1 text-blue-600 animate-pulse">
-                <Volume2 className="h-5 w-5" />
-                <span className="text-sm">Spreekt...</span>
+    <div className="min-h-[calc(100vh-4rem)] bg-slate-50 flex flex-col max-w-3xl mx-auto w-full shadow-xl">
+      {/* Header */}
+      <div className="bg-primary text-primary-foreground p-4 flex items-center gap-4 sticky top-0 z-10 shadow-md">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => {
+            stop(); // Stop speaking if leaving
+            navigate('/nieuwe-melding');
+          }}
+          className="text-primary-foreground hover:bg-primary/20 shrink-0"
+          title="Terug"
+        >
+          <ArrowLeft className="h-6 w-6" />
+        </Button>
+        <div className="flex-1">
+          <h2 className="text-xl font-bold">Nieuwe {displayType} Melding</h2>
+          <p className="text-sm text-primary-foreground/80 hidden sm:block">
+            Simo helpt je met het invullen van de melding
+          </p>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => {
+            if (isSpeaking) {
+              stop();
+              setIsSpeaking(false);
+            } else if (messages.length > 0) {
+              // Read the last assistant message
+              const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant');
+              if (lastAssistantMsg) {
+                setIsSpeaking(true);
+                speak(lastAssistantMsg.content, () => setIsSpeaking(false));
+              }
+            }
+          }}
+          className={`shrink-0 ${isSpeaking ? 'text-accent' : 'text-primary-foreground'}`}
+          title={isSpeaking ? "Stop afspelen" : "Lees laatste bericht voor"}
+        >
+          <Volume2 className={`h-6 w-6 ${isSpeaking ? 'animate-pulse' : ''}`} />
+        </Button>
+      </div>
+
+      {/* Permission Alert */}
+      {microphonePermission === 'denied' && (
+        <Alert variant="destructive" className="m-4 border-2 rounded-xl">
+          <AlertDescription className="font-medium text-base py-1">
+            Toegang tot de microfoon is geweigerd. Gebruik het toetsenbord of sta toegang toe in je browserinstellingen (klik op het slotje in de adresbalk).
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Chat Area */}
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-32">
+        <div className="space-y-6">
+          {messages.map((msg, index) => (
+            <ConversationBubble key={index} message={msg} />
+          ))}
+          {aiLoading && (
+            <div className="flex justify-start mb-4">
+              <div className="max-w-[80%] rounded-2xl px-5 py-4 bg-gray-200 text-gray-800 rounded-tl-none flex items-center gap-2">
+                <div className="flex gap-1.5">
+                  <div className="w-2.5 h-2.5 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                  <div className="w-2.5 h-2.5 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                  <div className="w-2.5 h-2.5 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                </div>
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+      </div>
+
+      {/* Input Area */}
+      <div className="bg-white border-t p-4 pb-8 sm:pb-4 fixed bottom-0 w-full max-w-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)] rounded-t-3xl">
+        <div className="flex flex-col gap-4">
+          
+          {/* Status indicators */}
+          <div className="h-24 flex items-center justify-center">
+            {isListening ? (
+              <div className="w-full flex flex-col items-center gap-2">
+                <VoiceVisualizer isListening={true} />
+                <p className="text-sm font-medium text-blue-600 animate-pulse">
+                  Ik luister... (Spreek nu)
+                </p>
+                {currentInput && (
+                  <p className="text-sm text-gray-500 truncate max-w-full px-4">
+                    "{currentInput}"
+                  </p>
+                )}
+              </div>
+            ) : useKeyboard ? (
+              <div className="w-full h-full flex flex-col justify-end">
+                <p className="text-sm font-medium text-gray-600 mb-2 pl-1">
+                  Typ je antwoord:
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    autoFocus
+                    value={currentInput}
+                    onChange={(e) => setCurrentInput(e.target.value)}
+                    placeholder="Typ hier..."
+                    onKeyDown={(e) => e.key === 'Enter' && !aiLoading && handleSubmitAnswer()}
+                    className="flex-1 h-14 text-lg"
+                    disabled={aiLoading}
+                  />
+                  <Button 
+                    size="lg" 
+                    onClick={handleSubmitAnswer}
+                    disabled={!currentInput.trim() || aiLoading}
+                    className="h-14 px-8"
+                  >
+                    {aiLoading ? (
+                      <div className="flex gap-1">
+                        <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
+                      </div>
+                    ) : (
+                      <Send className="h-5 w-5" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex justify-center gap-4">
+                {!isListening ? (
+                  <Button
+                    size="lg"
+                    onClick={startListening}
+                    disabled={aiLoading}
+                    className="h-20 w-20 rounded-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    <Mic className="h-8 w-8" />
+                  </Button>
+                ) : (
+                  <Button
+                    size="lg"
+                    onClick={stopListening}
+                    variant="destructive"
+                    className="h-20 w-20 rounded-full"
+                  >
+                    <MicOff className="h-8 w-8" />
+                  </Button>
+                )}
+                
+                {currentInput && (
+                  <Button
+                    size="lg"
+                    onClick={handleSubmitAnswer}
+                    disabled={aiLoading}
+                    className="h-20 px-8 rounded-full bg-green-600 hover:bg-green-700"
+                  >
+                    Verstuur "{currentInput.substring(0, 15)}..."
+                  </Button>
+                )}
               </div>
             )}
           </div>
-          <Button
-            variant="ghost"
-            onClick={() => setUseKeyboard(!useKeyboard)}
-            className="ml-auto"
-          >
-            <Keyboard className="h-4 w-4" />
-          </Button>
-        </div>
 
-        {/* Microphone Permission Alert */}
-        {(microphonePermission === 'denied' || microphonePermission === 'prompt') && !useKeyboard && (
-          <Alert className="mb-4 bg-blue-50 border-blue-300">
-            <Mic className="h-4 w-4 text-blue-600" />
-            <AlertDescription className="text-blue-800">
-              {microphonePermission === 'denied' ? (
-                <div className="space-y-2">
-                  <p className="font-semibold">Microfoon toegang geweigerd</p>
-                  <p className="text-sm">
-                    Om spraakherkenning te gebruiken moet je microfoon toegang geven:
-                  </p>
-                  <ol className="text-sm list-decimal list-inside space-y-1 ml-2">
-                    <li>Klik op het slotje/camera-icoon links van de URL</li>
-                    <li>Sta microfoon toegang toe voor deze website</li>
-                    <li>Herlaad de pagina</li>
-                  </ol>
-                  <div className="flex gap-2 mt-3">
-                    <Button 
-                      onClick={requestMicrophoneAccess}
-                      size="sm"
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      <Mic className="h-4 w-4 mr-2" />
-                      Opnieuw Proberen
-                    </Button>
-                    <Button 
-                      onClick={() => setUseKeyboard(true)}
-                      size="sm"
-                      variant="outline"
-                    >
-                      <Keyboard className="h-4 w-4 mr-2" />
-                      Gebruik Toetsenbord
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <p className="font-semibold">Spraakherkenning inschakelen</p>
-                  <p className="text-sm">
-                    Voor spraakherkenning heeft de app toegang tot je microfoon nodig.
-                  </p>
-                  <Button 
-                    onClick={requestMicrophoneAccess}
-                    size="sm"
-                    className="bg-blue-600 hover:bg-blue-700 mt-2"
-                  >
-                    <Mic className="h-4 w-4 mr-2" />
-                    Microfoon Toegang Toestaan
-                  </Button>
-                </div>
-              )}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Conversation Area */}
-        <div className="flex-1 overflow-y-auto mb-6 space-y-4 bg-white rounded-lg p-6 shadow-sm">
-          {messages.map((message, index) => (
-            <ConversationBubble key={index} message={message} />
-          ))}
-          
-          {aiLoading && (
-            <div className="flex items-center gap-2 p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <div className="flex gap-1">
-                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-              </div>
-              <span className="text-sm text-gray-600">SIMO denkt na...</span>
-            </div>
-          )}
-          
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input Area */}
-        <div className="space-y-4">
-          <VoiceVisualizer isListening={isListening} />
-
-          {useKeyboard ? (
-            <div className="flex gap-2">
-              <Input
-                value={currentInput}
-                onChange={(e) => setCurrentInput(e.target.value)}
-                placeholder="Type hier je antwoord..."
-                onKeyPress={(e) => e.key === 'Enter' && !aiLoading && handleSubmitAnswer()}
-                className="flex-1 h-14 text-lg"
-                disabled={aiLoading}
-              />
+          {/* Toggle buttons */}
+          <div className="flex justify-center gap-2">
+            {!useKeyboard ? (
               <Button
-                size="lg"
-                onClick={handleSubmitAnswer}
-                disabled={!currentInput.trim() || aiLoading}
-                className="h-14 px-8"
+                variant="outline"
+                onClick={() => {
+                  if (isListening) stopListening();
+                  setUseKeyboard(true);
+                }}
+                className="text-gray-600 rounded-full"
               >
-                {aiLoading ? (
-                  <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
-                  </div>
-                ) : (
-                  <Send className="h-5 w-5" />
-                )}
+                <Keyboard className="h-4 w-4 mr-2" />
+                Liever typen
               </Button>
-            </div>
-          ) : (
-            <div className="flex justify-center gap-4">
-              {!isListening ? (
-                <Button
-                  size="lg"
-                  onClick={startListening}
-                  disabled={aiLoading}
-                  className="h-20 w-20 rounded-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
-                >
-                  <Mic className="h-8 w-8" />
-                </Button>
-              ) : (
-                <Button
-                  size="lg"
-                  onClick={stopListening}
-                  variant="destructive"
-                  className="h-20 w-20 rounded-full"
-                >
-                  <MicOff className="h-8 w-8" />
-                </Button>
-              )}
-              {currentInput && (
-                <Button
-                  size="lg"
-                  onClick={handleSubmitAnswer}
-                  disabled={aiLoading}
-                  className="h-20 px-8"
-                >
-                  {aiLoading ? (
-                    <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
-                    </div>
-                  ) : (
-                    <>
-                      <Send className="h-5 w-5 mr-2" />
-                      Verzenden
-                    </>
-                  )}
-                </Button>
-              )}
-            </div>
-          )}
-
-          {currentInput && (
-            <Card className="p-4 bg-blue-50 border-blue-200">
-              <p className="text-sm text-gray-600 mb-1">Je hebt gezegd:</p>
-              <div className="flex justify-between items-start gap-4">
-                <p className="text-base font-medium flex-1">{currentInput}</p>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setCurrentInput('')}
-                  className="text-xs"
-                >
-                  Wissen
-                </Button>
-              </div>
-            </Card>
-          )}
+            ) : (
+              <Button
+                variant="outline"
+                onClick={() => setUseKeyboard(false)}
+                className="text-gray-600 rounded-full"
+              >
+                <Mic className="h-4 w-4 mr-2" />
+                Liever spreken
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </div>
