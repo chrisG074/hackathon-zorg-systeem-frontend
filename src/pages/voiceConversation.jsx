@@ -6,6 +6,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { ConversationBubble } from '../components/ConversationBubble';
 import { VoiceVisualizer } from '../components/VoiceVisualizer';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   ArrowLeft,
   Mic,
@@ -13,6 +14,7 @@ import {
   Keyboard,
   Send,
   Volume2,
+  Sparkles
 } from 'lucide-react';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Card } from '../components/ui/card';
@@ -26,7 +28,7 @@ export default function VoiceConversation() {
   const [isListening, setIsListening] = useState(false);
   const [useKeyboard, setUseKeyboard] = useState(false);
   const [currentInput, setCurrentInput] = useState('');
-  const [formData, setFormData] = useState({})
+  const [formData, setFormData] = useState({});
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [microphonePermission, setMicrophonePermission] = useState('prompt');
   const [aiLoading, setAiLoading] = useState(false);
@@ -78,7 +80,6 @@ export default function VoiceConversation() {
 
       const fullPrompt = `${typeContext}\nHieronder volgt het gesprek tot nu toe. Gebruik de informatie uit eerdere berichten om te bepalen wat je al weet.\n\nGESPREK:\n${history}\nGebruiker: ${userMessage}\n\nINSTRUCTIE: Scan het bovenstaande gesprek op antwoorden. Stel GEEN vragen over zaken die hierboven al zijn genoemd (zoals namen, tijden of locaties).`;
 
-      // GEWIJZIGD: Gebruik API_URL in plaats van localhost
       const response = await fetch(`${API_URL}/api/Ai/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -253,9 +254,7 @@ export default function VoiceConversation() {
     }
 
     try {
-      // Ensure any previous recognition session is stopped before starting a new one
       recognitionRef.current?.abort();
-      // Small delay to allow proper cleanup
       setTimeout(() => {
         try {
           recognitionRef.current?.start();
@@ -300,20 +299,17 @@ export default function VoiceConversation() {
       },
     ]);
 
-    // Send to AI and wait for response
     const aiResponse = await sendToAi(userInput);
 
     if (aiResponse) {
-      // Check if the form is complete
       if (aiResponse.includes('[COMPLEET]')) {
         const parts = aiResponse.split('[COMPLEET]');
         const jsonString = parts[1].trim();
 
         try {
           const aiData = JSON.parse(jsonString);
-          let mappedData = { ...aiData }; // We nemen de AI data direct over
+          let mappedData = { ...aiData }; 
 
-          // Navigeer naar /review (zorg dat de route exact matcht)
           navigate('/review', { state: { formData: mappedData, type: type } });
           return;
         } catch (e) {
@@ -321,13 +317,11 @@ export default function VoiceConversation() {
         }
       }
 
-      // Add SIMO's response to conversation
       setMessages((prev) => [
         ...prev,
         { role: 'assistant', content: aiResponse, fieldName: null },
       ]);
 
-      // Speak the response
       setTimeout(() => {
         setIsSpeaking(true);
         speak(aiResponse, () => setIsSpeaking(false));
@@ -338,29 +332,30 @@ export default function VoiceConversation() {
   const displayType = type ? type.charAt(0).toUpperCase() + type.slice(1) : '';
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col max-w-3xl mx-auto w-full shadow-xl">
-      {/* Header */}
-      <div className="bg-primary text-primary-foreground p-4 flex items-center gap-4 sticky top-0 z-10 shadow-md">
-        <Button
-          variant="ghost"
-          size="icon"
+    <div className="min-h-screen bg-white flex flex-col max-w-4xl mx-auto w-full shadow-2xl overflow-hidden border-x border-slate-100">
+      
+      {/* Verbeterde Header */}
+      <div className="bg-white/80 backdrop-blur-md border-b p-4 flex items-center gap-4 sticky top-0 z-20">
+        <Button 
+          variant="ghost" 
+          size="icon" 
           onClick={() => {
             stop();
             navigate('/nieuwe-melding');
-          }}
-          className="text-primary-foreground hover:bg-primary/20 shrink-0"
-          title="Terug"
+          }} 
+          className="rounded-full"
         >
-          <ArrowLeft className="h-6 w-6" />
+          <ArrowLeft className="h-5 w-5 text-slate-600" />
         </Button>
         <div className="flex-1">
-          <h2 className="text-xl font-bold">Nieuwe {displayType} Melding</h2>
-          <p className="text-sm text-primary-foreground/80 hidden sm:block">
-            Simo helpt je met het invullen van de melding
-          </p>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-extrabold text-slate-900 tracking-tight">{displayType} Melding</h2>
+            <div className="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-black rounded-full uppercase">Live Assistent</div>
+          </div>
+          <p className="text-xs text-slate-500 font-medium">Simo luistert naar je verhaal</p>
         </div>
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon"
           onClick={() => {
             if (isSpeaking) {
@@ -374,13 +369,14 @@ export default function VoiceConversation() {
               }
             }
           }}
-          className={`shrink-0 ${isSpeaking ? 'text-accent' : 'text-primary-foreground'}`}
+          className={`rounded-full border-slate-200 ${isSpeaking ? 'bg-primary/5' : ''}`}
           title={isSpeaking ? "Stop afspelen" : "Lees laatste bericht voor"}
         >
-          <Volume2 className={`h-6 w-6 ${isSpeaking ? 'animate-pulse' : ''}`} />
+          <Volume2 className={`h-4 w-4 text-slate-600 ${isSpeaking ? 'animate-pulse text-primary' : ''}`} />
         </Button>
       </div>
 
+      {/* Originele alert behouden voor als de mic geweigerd is */}
       {microphonePermission === 'denied' && (
         <Alert variant="destructive" className="m-4 border-2 rounded-xl">
           <AlertDescription className="font-medium text-base py-1">
@@ -389,157 +385,140 @@ export default function VoiceConversation() {
         </Alert>
       )}
 
-      {/* Chat Area - flex-1 with overflow */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-        <div className="space-y-6">
+      {/* Berichtenlijst met meer ruimte */}
+      <div className="flex-1 overflow-y-auto p-6 bg-slate-50/30">
+        <div className="max-w-2xl mx-auto space-y-2">
           {messages.map((msg, index) => (
             <ConversationBubble key={index} message={msg} />
           ))}
-          {aiLoading && (
-            <div className="flex justify-start mb-4">
-              <div className="max-w-[80%] rounded-2xl px-5 py-4 bg-gray-200 text-gray-800 rounded-tl-none flex items-center gap-2">
-                <div className="flex gap-1.5">
-                  <div className="w-2.5 h-2.5 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                  <div className="w-2.5 h-2.5 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                  <div className="w-2.5 h-2.5 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                </div>
-              </div>
-            </div>
-          )}
+          
+          <AnimatePresence>
+            {aiLoading && (
+              <motion.div 
+                initial={{ opacity: 0, y: 5 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                exit={{ opacity: 0 }}
+                className="flex items-center gap-3 text-slate-400 font-bold text-sm ml-10 py-4"
+              >
+                <Sparkles className="h-4 w-4 animate-pulse text-primary" />
+                Simo denkt na...
+              </motion.div>
+            )}
+          </AnimatePresence>
           <div ref={messagesEndRef} />
         </div>
       </div>
 
-      {/* Input Area */}
-      <div className="bg-white border-t p-4 pb-4 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] shrink-0">
-        <div className="flex flex-col gap-4">
-
-          {/* Status indicators */}
-          <div className="flex items-center justify-center">
+      {/* Moderne Floating Input Area */}
+      <div className="p-6 bg-white border-t border-slate-100 shadow-[0_-10px_40px_rgba(0,0,0,0.03)] shrink-0">
+        <div className="max-w-2xl mx-auto space-y-6">
+          
+          <AnimatePresence mode="wait">
             {isListening ? (
-              <div className="w-full flex flex-col items-center gap-2">
+              <motion.div 
+                key="listening"
+                initial={{ opacity: 0, scale: 0.9 }} 
+                animate={{ opacity: 1, scale: 1 }} 
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="flex flex-col items-center gap-4"
+              >
                 <VoiceVisualizer isListening={true} />
-                <p className="text-sm font-medium text-blue-600 animate-pulse">
-                  Ik luister... (Spreek nu)
-                </p>
+                <p className="text-sm font-bold text-primary animate-pulse tracking-wide uppercase">Spreken...</p>
                 {currentInput && (
-                  <div className="w-full flex gap-2 px-4">
-                    <textarea
-                      value={currentInput}
-                      readOnly
-                      className="flex-1 p-3 border rounded-lg resize-none bg-white text-sm"
-                      rows="2"
-                    />
+                  <div className="w-full p-4 bg-blue-50 rounded-2xl border border-blue-100 text-slate-700 italic text-center">
+                    "{currentInput}"
                   </div>
                 )}
-              </div>
-            ) : useKeyboard ? (
-              <div className="w-full flex flex-col gap-2">
-                <p className="text-sm font-medium text-gray-600 pl-1">
-                  Typ je antwoord:
-                </p>
+                {/* Submit / Stop logica bewaard voor spraakmodus zodat het net zo goed werkt als je origineel */}
                 <div className="flex gap-2">
-                  <Input
-                    autoFocus
-                    value={currentInput}
-                    onChange={(e) => setCurrentInput(e.target.value)}
-                    placeholder="Typ hier..."
-                    onKeyDown={(e) => e.key === 'Enter' && !aiLoading && handleSubmitAnswer()}
-                    className="flex-1 h-14 text-lg"
-                    disabled={aiLoading}
-                  />
-                  <Button
-                    size="lg"
-                    onClick={handleSubmitAnswer}
-                    disabled={!currentInput.trim() || aiLoading}
-                    className="h-14 px-8"
-                  >
-                    {aiLoading ? (
-                      <div className="flex gap-1">
-                        <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
-                        <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
-                      </div>
-                    ) : (
-                      <Send className="h-5 w-5" />
-                    )}
-                  </Button>
+                  {currentInput ? (
+                     <Button
+                       size="lg"
+                       onClick={handleSubmitAnswer}
+                       disabled={aiLoading}
+                       className="px-8 rounded-xl bg-green-600 hover:bg-green-700 h-12 shadow-lg"
+                     >
+                       <Send className="h-5 w-5 mr-2" />
+                       Verstuur
+                     </Button>
+                  ) : (
+                     <Button
+                       size="icon"
+                       onClick={stopListening}
+                       variant="destructive"
+                       className="h-12 w-12 rounded-full shadow-lg"
+                     >
+                       <MicOff className="h-5 w-5" />
+                     </Button>
+                  )}
                 </div>
-              </div>
+              </motion.div>
+            ) : useKeyboard ? (
+              <motion.div 
+                key="keyboard"
+                initial={{ opacity: 0, y: 10 }} 
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className="flex gap-2"
+              >
+                <Input
+                  autoFocus
+                  value={currentInput}
+                  onChange={(e) => setCurrentInput(e.target.value)}
+                  placeholder="Typ je bericht..."
+                  onKeyDown={(e) => e.key === 'Enter' && !aiLoading && handleSubmitAnswer()}
+                  className="h-14 rounded-2xl border-slate-200 text-base px-6 shadow-sm focus:ring-primary/20"
+                  disabled={aiLoading}
+                />
+                <Button 
+                  onClick={handleSubmitAnswer} 
+                  disabled={!currentInput.trim() || aiLoading}
+                  className="h-14 w-14 rounded-2xl shadow-lg shadow-primary/20 shrink-0"
+                >
+                  {aiLoading ? (
+                     <div className="flex gap-1">
+                        <div className="w-1.5 h-1.5 bg-white rounded-full animate-bounce"></div>
+                        <div className="w-1.5 h-1.5 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                     </div>
+                  ) : (
+                     <Send className="h-5 w-5" />
+                  )}
+                </Button>
+              </motion.div>
             ) : (
-              <div className="flex justify-center">
-                {!isListening ? (
-                  <Button
-                    size="lg"
-                    onClick={startListening}
-                    disabled={aiLoading}
-                    className="h-20 w-20 rounded-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    <Mic className="h-8 w-8" />
-                  </Button>
-                ) : (
-                  <Button
-                    size="lg"
-                    onClick={stopListening}
-                    variant="destructive"
-                    className="h-20 w-20 rounded-full"
-                  >
-                    <MicOff className="h-8 w-8" />
-                  </Button>
-                )}
-              </div>
+              <motion.div 
+                key="idle"
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex flex-col items-center gap-4"
+              >
+                <button
+                  onClick={startListening}
+                  disabled={aiLoading}
+                  className="group relative flex items-center justify-center w-24 h-24 bg-primary rounded-full shadow-2xl shadow-primary/40 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+                >
+                  <div className="absolute inset-0 rounded-full bg-primary animate-ping opacity-20 group-hover:opacity-40" />
+                  <Mic className="h-10 w-10 text-white relative z-10" />
+                </button>
+                <p className="text-slate-500 font-bold text-xs uppercase tracking-widest">Tik om te praten</p>
+              </motion.div>
             )}
-          </div>
+          </AnimatePresence>
 
-          {currentInput && !isListening && !useKeyboard && (
-            <div className="flex gap-2 w-full px-4 items-stretch">
-              <textarea
-                value={currentInput}
-                readOnly
-                className="flex-1 p-3 border rounded-lg resize-none bg-gray-50 text-sm"
-                rows="3"
-              />
-              <Button
-                size="lg"
-                onClick={handleSubmitAnswer}
-                disabled={aiLoading}
-                className="px-8 rounded-lg bg-green-600 hover:bg-green-700 h-25"
-              >
-                {aiLoading ? (
-                  <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
-                  </div>
-                ) : (
-                  <Send className="h-5 w-5 mr-2" />
-                )}
-                Verstuur
-              </Button>
-            </div>
-          )}
-
-          <div className="flex justify-center gap-2">
-            {!useKeyboard ? (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  if (isListening) stopListening();
-                  setUseKeyboard(true);
-                }}
-                className="text-gray-600 rounded-full"
-              >
-                <Keyboard className="h-4 w-4 mr-2" />
-                Liever typen
-              </Button>
-            ) : (
-              <Button
-                variant="outline"
-                onClick={() => setUseKeyboard(false)}
-                className="text-gray-600 rounded-full"
-              >
-                <Mic className="h-4 w-4 mr-2" />
-                Liever spreken
-              </Button>
-            )}
+          <div className="flex justify-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                if (isListening) stopListening();
+                setUseKeyboard(!useKeyboard);
+                setCurrentInput('');
+              }}
+              className="text-slate-400 hover:text-primary font-bold text-xs uppercase tracking-widest"
+            >
+              {useKeyboard ? <><Mic className="h-4 w-4 mr-2" /> Liever Spreken</> : <><Keyboard className="h-4 w-4 mr-2" /> Liever Typen</>}
+            </Button>
           </div>
         </div>
       </div>
