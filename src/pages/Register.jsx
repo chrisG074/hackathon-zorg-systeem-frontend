@@ -26,22 +26,31 @@ export default function Register() {
 
       let data;
       const contentType = response.headers.get("content-type");
-      if (contentType && contentType.indexOf("application/json") !== -1) {
+      
+      // Controleer of we daadwerkelijk JSON terugkrijgen
+      if (contentType && contentType.includes("application/json")) {
         data = await response.json();
       } else {
-        throw new Error("Ongeldig antwoord van de server.");
+        // Als de backend crasht (bijv. database fout), stuurt MonsterASP vaak een HTML pagina terug.
+        // We lezen deze uit en printen hem in de console zodat je hem kunt debuggen.
+        const textContent = await response.text();
+        console.error("Server antwoordde niet met JSON. Ruwe antwoord:", textContent);
+        throw new Error(`Serverfout (${response.status}): De backend crasht mogelijk. Bekijk de F12 console voor de ruwe HTML/tekst.`);
       }
 
       if (response.ok) {
         toast.success('Account succesvol aangemaakt! Je kunt nu inloggen.');
         navigate('/login');
       } else {
-        // Toon de specifieke error (zoals wachtwoord vereisten) uit de backend
-        toast.error(data.message || 'Er is iets misgegaan bij het registreren.');
+        // Als de response NIET ok is, gooi dan de foutmelding vanuit de backend naar het catch-blok
+        throw new Error(data.message || 'Er is iets misgegaan bij het registreren (Geen specifieke backend message).');
       }
     } catch (error) {
-      console.error(error);
-      toast.error('Kan de server niet bereiken. Controleer of de backend draait.');
+      console.error("Volledige error:", error);
+      
+      // Laat nu de daadwerkelijke error.message zien in plaats van de standaard tekst
+      // Als het een netwerkfout (bijv. CORS) is waarbij error.message niet leesbaar is, val dan pas terug op de standaard tekst
+      toast.error(error.message || 'Kan de server niet bereiken. Controleer of de backend draait.');
     } finally {
       setLoading(false);
     }
