@@ -8,11 +8,12 @@ export default function AdminPanel() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5258';
+
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('token');
-      // POORT AANGEPAST NAAR 5258
-      const response = await fetch('http://localhost:5258/api/auth/users', { 
+      const response = await fetch(`${API_URL}/api/auth/users`, { 
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -38,8 +39,7 @@ export default function AdminPanel() {
   const handleRoleChange = async (userId, newRole) => {
     try {
       const token = localStorage.getItem('token');
-      // POORT AANGEPAST NAAR 5258
-      const response = await fetch(`http://localhost:5258/api/auth/users/${userId}/role`, {
+      const response = await fetch(`${API_URL}/api/auth/users/${userId}/role`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -50,60 +50,54 @@ export default function AdminPanel() {
 
       if (response.ok) {
         toast.success(`Rol succesvol gewijzigd naar ${newRole}`);
-        fetchUsers(); // Refresh the list
+        fetchUsers();
       } else {
-        toast.error('Fout bij het wijzigen van de rol.');
+        toast.error('Fout bij wijzigen rol.');
       }
     } catch (error) {
-      toast.error('Netwerkfout bij het updaten van de rol.');
+      toast.error('Netwerkfout bij wijzigen rol.');
     }
   };
 
-  if (loading) return <div className="p-8 text-center">Laden...</div>;
+  if (loading) {
+    return <div className="p-8 text-center">Laden...</div>;
+  }
 
   return (
-    <div className="max-w-5xl mx-auto p-6 space-y-6">
-      <div className="flex items-center gap-3 mb-8">
+    <div className="max-w-7xl mx-auto p-6 space-y-8 mt-4">
+      <div className="flex items-center gap-3 mb-6">
         <ShieldAlert className="h-8 w-8 text-primary" />
-        <h1 className="text-3xl font-bold">Admin Paneel - Gebruikersbeheer</h1>
+        <h2 className="text-3xl font-bold text-foreground">Admin Paneel</h2>
       </div>
 
-      <Card className="p-6">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b-2 border-primary/20">
-                <th className="p-3 font-semibold">E-mailadres</th>
-                <th className="p-3 font-semibold">Huidige Rol</th>
-                <th className="p-3 font-semibold text-right">Acties</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((user) => (
-                <tr key={user.id} className="border-b border-border/50 hover:bg-muted/50 transition-colors">
-                  <td className="p-3">{user.email}</td>
-                  <td className="p-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${user.role === 'Admin' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
-                      {user.role}
-                    </span>
-                  </td>
-                  <td className="p-3 text-right">
-                    {user.role === 'Verpleegkundige' ? (
-                      <Button size="sm" variant="destructive" onClick={() => handleRoleChange(user.id, 'Admin')}>
-                        Maak Admin
-                      </Button>
-                    ) : (
-                      <Button size="sm" variant="outline" onClick={() => handleRoleChange(user.id, 'Verpleegkundige')}>
-                        Maak Verpleegkundige
-                      </Button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+      <div className="grid gap-4">
+        {users.map(user => (
+          <Card key={user.id} className="p-4 flex justify-between items-center bg-card">
+            <div className="flex items-center gap-4">
+              <UserCog className="h-6 w-6 text-muted-foreground" />
+              <div>
+                <p className="font-semibold">{user.email}</p>
+                <p className="text-sm text-muted-foreground">Huidige rol: {user.roles.join(', ') || 'Geen'}</p>
+              </div>
+            </div>
+            
+            <div className="flex gap-2">
+              <Button 
+                variant={user.roles.includes('Admin') ? "default" : "outline"}
+                onClick={() => handleRoleChange(user.id, 'Admin')}
+              >
+                Maak Admin
+              </Button>
+              <Button 
+                variant={user.roles.includes('Verpleegkundige') ? "default" : "outline"}
+                onClick={() => handleRoleChange(user.id, 'Verpleegkundige')}
+              >
+                Maak Verpleegkundige
+              </Button>
+            </div>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }

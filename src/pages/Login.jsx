@@ -41,7 +41,7 @@ export default function Login() {
         setError(data.message || 'E-mail of wachtwoord onjuist');
       }
     } catch (err) {
-      setError('Server onbereikbaar op poort 5258');
+      setError('Kan de server niet bereiken. Controleer je internetverbinding of de live backend.');
     } finally {
       setIsLoading(false);
     }
@@ -55,61 +55,59 @@ export default function Login() {
             <Building2 className="h-8 w-8 text-primary" />
           </div>
           <h1 className="text-3xl font-bold text-slate-900">SoftZorg</h1>
-          <p className="text-slate-500 mt-2">Log in op uw zorgomgeving</p>
+          <p className="text-slate-500 mt-2 text-center">Log in op het zorgportaal</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">
+          {error && (
+            <div className="bg-destructive/10 text-destructive p-3 rounded-lg flex items-center gap-2 text-sm">
+              <AlertCircle className="h-4 w-4" />
+              <p>{error}</p>
+            </div>
+          )}
+          
           <div className="space-y-2">
             <Label htmlFor="email">E-mailadres</Label>
             <div className="relative">
-              <Mail className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-              <Input
+              <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+              <Input 
                 id="email"
-                type="email"
-                placeholder="naam@zorg.nl"
-                className="pl-10 h-12"
+                type="email" 
+                placeholder="naam@zorg.nl" 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                className="pl-9"
                 required
               />
             </div>
           </div>
-
+          
           <div className="space-y-2">
             <Label htmlFor="password">Wachtwoord</Label>
             <div className="relative">
-              <Lock className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-              <Input
+              <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+              <Input 
                 id="password"
-                type="password"
-                placeholder="••••••••"
-                className="pl-10 h-12"
+                type="password" 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                className="pl-9"
                 required
               />
             </div>
           </div>
 
-          {error && (
-            <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-              <AlertCircle className="h-4 w-4 text-destructive" />
-              <p className="text-sm text-destructive">{error}</p>
-            </div>
-          )}
-
-          <Button type="submit" className="w-full h-12" disabled={isLoading}>
-            {isLoading ? 'Inloggen...' : 'Inloggen'}
+          <Button 
+            type="submit" 
+            className="w-full h-11 text-lg font-semibold"
+            disabled={isLoading}
+          >
+            {isLoading ? 'Bezig met inloggen...' : 'Inloggen'}
           </Button>
         </form>
 
-        <div className="mt-6 pt-6 border-t text-center">
-            <p className="text-sm text-muted-foreground">
-              Nog geen account?{' '}
-              <button onClick={() => navigate('/register')} className="text-primary hover:underline font-medium">
-                Registreer hier
-              </button>
-            </p>
+        <div className="mt-6 text-center text-sm text-slate-500">
+          <p>Problemen met inloggen? Neem contact op met IT support.</p>
         </div>
       </Card>
     </div>
