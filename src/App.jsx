@@ -13,6 +13,7 @@ import Login from './pages/Login';
 import ReportTypeSelection from './pages/nieuwe-melding';
 import VoiceConversation from './pages/voiceConversation';
 import Overzicht from './pages/Overzicht';
+import ReviewReport from './pages/reviewReport';
 
 export default function App() {
   return (
@@ -33,7 +34,8 @@ export default function App() {
           <Route path="/nieuwe-melding" element={<ReportTypeSelection />} />
           <Route path="/overzicht" element={<Overzicht />} />
           <Route path="/conversatie/:type" element={<VoiceConversation />} />
-          
+          <Route path="/review" element={<ReviewReport />} />
+
           {/* Admin Route (Extra check voor adminOnly binnen de layout) */}
           <Route 
             path="/admin-overzicht" 
