@@ -4,9 +4,18 @@ import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Filter, ArrowLeft, User, Loader2, AlertCircle, MapPin, Clock } from 'lucide-react';
 
+// De nieuwe subcategorieën data
+const SUB_CATEGORIEEN = {
+  Facilitair: ['Kapotte verlichting', 'Sanitair problemen', 'Meubilair', 'ICT & apparatuur', 'Schoonmaak'],
+  MIC: ['Valincident', 'Medicatiefout', 'Agressie', 'Vermissing', 'Seksueel misbruik', 'Fysieke letsel', 'Overige incidenten'],
+  MIM: ['Fysieke agressie', 'Verbale agressie', 'Ongewenst gedrag', 'Gevaarlijke situaties', 'Prik-spat of snij incidenten', 'Valpartijen', 'Psychische letsel']
+};
+
 export default function Overzicht() {
   const navigate = useNavigate();
   const [actieveFilter, setActieveFilter] = useState('Alle');
+  const [actieveSubFilter, setActieveSubFilter] = useState('Alle'); // Nieuwe state voor subcategorie
+  
   const [meldingen, setMeldingen] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -29,9 +38,18 @@ export default function Overzicht() {
     fetchMeldingen();
   }, [API_URL]);
 
-  const gefilterdeMeldingen = actieveFilter === 'Alle' 
-    ? meldingen 
-    : meldingen.filter(melding => melding.type === actieveFilter);
+  // Reset de subfilter als er van hoofdfilter gewisseld wordt
+  const handleFilterChange = (type) => {
+    setActieveFilter(type);
+    setActieveSubFilter('Alle');
+  };
+
+  // Logica om zowel op hoofd- als subcategorie te filteren
+  const gefilterdeMeldingen = meldingen.filter(melding => {
+    const matchType = actieveFilter === 'Alle' || melding.type === actieveFilter;
+    const matchSub = actieveSubFilter === 'Alle' || (melding.categorie && melding.categorie.toLowerCase() === actieveSubFilter.toLowerCase());
+    return matchType && matchSub;
+  });
 
   return (
     <div className="bg-slate-50/50 min-h-full pb-12">
@@ -51,26 +69,48 @@ export default function Overzicht() {
           </div>
         </div>
 
-        {/* Filter Sectie - Mobile friendly scroll */}
-        <Card className="p-2 sm:p-4 bg-white flex items-center gap-2 sm:gap-4 shadow-sm border-slate-200 rounded-2xl overflow-hidden">
-          <div className="flex items-center gap-2 text-slate-400 pl-2 shrink-0">
+        {/* Filter Sectie */}
+        <Card className="p-3 sm:p-4 bg-white flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 shadow-sm border-slate-200 rounded-2xl">
+          <div className="flex items-center gap-2 text-slate-400 pl-1 shrink-0">
             <Filter className="h-4 w-4" />
             <span className="font-bold text-xs uppercase tracking-wider hidden md:inline">Filter:</span>
           </div>
           
-          <div className="flex overflow-x-auto no-scrollbar gap-2 pb-1 sm:pb-0 w-full">
-            {['Alle', 'Facilitair', 'MIC', 'MIM'].map((filterType) => (
-              <Button
-                key={filterType}
-                variant={actieveFilter === filterType ? 'default' : 'ghost'}
-                onClick={() => setActieveFilter(filterType)}
-                className={`rounded-xl px-4 py-1 h-9 text-sm font-semibold transition-all shrink-0 ${
-                  actieveFilter === filterType ? 'bg-primary shadow-md' : 'text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                {filterType}
-              </Button>
-            ))}
+          <div className="flex flex-col sm:flex-row w-full gap-3 sm:gap-0">
+            {/* Hoofdfilters */}
+            <div className="flex overflow-x-auto no-scrollbar gap-2 pb-1 sm:pb-0">
+              {['Alle', 'Facilitair', 'MIC', 'MIM'].map((filterType) => (
+                <Button
+                  key={filterType}
+                  variant={actieveFilter === filterType ? 'default' : 'ghost'}
+                  onClick={() => handleFilterChange(filterType)}
+                  className={`rounded-xl px-4 py-1 h-9 text-sm font-semibold transition-all shrink-0 ${
+                    actieveFilter === filterType 
+                      ? 'bg-primary shadow-md text-white' 
+                      : 'text-slate-600 hover:bg-slate-200 hover:text-slate-900' // Verbeterd hover effect
+                  }`}
+                >
+                  {filterType}
+                </Button>
+              ))}
+            </div>
+
+            {/* Subcategorie Dropdown (Alleen zichtbaar als een specifieke categorie is gekozen) */}
+            {actieveFilter !== 'Alle' && (
+              <div className="flex items-center gap-2 sm:ml-4 sm:border-l sm:border-slate-200 sm:pl-4">
+                <select
+                  value={actieveSubFilter}
+                  onChange={(e) => setActieveSubFilter(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary block w-full sm:w-auto px-3 py-2 outline-none font-medium hover:bg-slate-100 transition-colors cursor-pointer appearance-none"
+                  style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em', paddingRight: '2.5rem' }}
+                >
+                  <option value="Alle">Alle subcategorieën</option>
+                  {SUB_CATEGORIEEN[actieveFilter].map(sub => (
+                    <option key={sub} value={sub}>{sub}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         </Card>
 
@@ -93,20 +133,21 @@ export default function Overzicht() {
 
           {!isLoading && !error && gefilterdeMeldingen.length === 0 && (
             <div className="py-20 text-center bg-white border border-dashed border-slate-300 rounded-3xl">
-              <p className="text-slate-400 font-bold text-lg">Geen meldingen gevonden voor "{actieveFilter}"</p>
+              <p className="text-slate-400 font-bold text-lg">
+                Geen meldingen gevonden voor deze filters.
+              </p>
             </div>
           )}
 
           {!isLoading && !error && gefilterdeMeldingen.map((melding) => (
             <Card key={melding.id} className="p-5 sm:p-6 bg-white hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 border border-slate-200 rounded-2xl relative overflow-hidden group">
-              {/* Type Indicator Line */}
               <div className={`absolute top-0 left-0 bottom-0 w-1.5 ${
                 melding.type === 'Facilitair' ? 'bg-blue-500' :
                 melding.type === 'MIC' ? 'bg-red-500' :
                 'bg-purple-500'
               }`} />
 
-              <div className="flex flex-col space-y-4">
+              <div className="flex flex-col space-y-4 pl-2">
                 <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
