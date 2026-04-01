@@ -43,7 +43,15 @@ export default function Overzicht() {
     setActieveSubFilter('Alle');
   };
 
-  // HAALT NU ALLEEN NAMEN OP UIT MIC (CLIËNT) MELDINGEN
+  // NIEUW: Als een cliënt geselecteerd wordt, reset dan automatisch de hoofdfilters
+  const handleClientFilterChange = (clientName) => {
+    setActieveClientFilter(clientName);
+    if (clientName !== 'Alle') {
+      setActieveFilter('Alle');
+      setActieveSubFilter('Alle');
+    }
+  };
+
   const uniekeClienten = ['Alle', ...new Set(
     meldingen
       .filter(m => m.type === 'MIC')
@@ -122,7 +130,7 @@ export default function Overzicht() {
             </div>
           </Card>
 
-          {/* Cliënt Filter Sectie (Alleen voor cliënten) */}
+          {/* Cliënt Filter Sectie */}
           <Card className="p-3 sm:p-4 bg-white flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 shadow-sm border-slate-200 rounded-2xl">
             <div className="flex items-center gap-2 text-slate-500 pl-1 shrink-0">
               <Search className="h-4 w-4 text-primary" />
@@ -135,7 +143,7 @@ export default function Overzicht() {
               <select
                 id="clientFilter"
                 value={actieveClientFilter}
-                onChange={(e) => setActieveClientFilter(e.target.value)}
+                onChange={(e) => handleClientFilterChange(e.target.value)} // Gewijzigd naar nieuwe functie
                 className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary block w-full sm:max-w-xs px-3 py-2 outline-none font-medium hover:bg-slate-100 transition-colors cursor-pointer appearance-none"
                 style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em', paddingRight: '2.5rem' }}
               >
