@@ -38,12 +38,20 @@ export default function Overzicht() {
     fetchMeldingen();
   }, [API_URL]);
 
+  // Als de hoofdfilter wijzigt, reset dan de subfilter én de cliëntfilter
   const handleFilterChange = (type) => {
     setActieveFilter(type);
     setActieveSubFilter('Alle');
+    setActieveClientFilter('Alle');
   };
 
-  // NIEUW: Als een cliënt geselecteerd wordt, reset dan automatisch de hoofdfilters
+  // Als de subfilter wijzigt, reset dan ook de cliëntfilter
+  const handleSubFilterChange = (subFilter) => {
+    setActieveSubFilter(subFilter);
+    setActieveClientFilter('Alle');
+  };
+
+  // Als een cliënt geselecteerd wordt, reset dan automatisch de hoofdfilters
   const handleClientFilterChange = (clientName) => {
     setActieveClientFilter(clientName);
     if (clientName !== 'Alle') {
@@ -116,7 +124,7 @@ export default function Overzicht() {
                 <div className="flex items-center gap-2 sm:ml-4 sm:border-l sm:border-slate-200 sm:pl-4">
                   <select
                     value={actieveSubFilter}
-                    onChange={(e) => setActieveSubFilter(e.target.value)}
+                    onChange={(e) => handleSubFilterChange(e.target.value)}
                     className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary block w-full sm:w-auto px-3 py-2 outline-none font-medium hover:bg-slate-100 transition-colors cursor-pointer appearance-none"
                     style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em', paddingRight: '2.5rem' }}
                   >
@@ -143,13 +151,14 @@ export default function Overzicht() {
               <select
                 id="clientFilter"
                 value={actieveClientFilter}
-                onChange={(e) => handleClientFilterChange(e.target.value)} // Gewijzigd naar nieuwe functie
+                onChange={(e) => handleClientFilterChange(e.target.value)} 
                 className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary block w-full sm:max-w-xs px-3 py-2 outline-none font-medium hover:bg-slate-100 transition-colors cursor-pointer appearance-none"
                 style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em', paddingRight: '2.5rem' }}
               >
                 {uniekeClienten.map((client, index) => (
                   <option key={index} value={client}>
-                    {client === 'Alle' ? 'Alle cliënten tonen' : client}
+                    {/* Tekst aangepast zoals gevraagd */}
+                    {client === 'Alle' ? 'Filter op cliënt' : client}
                   </option>
                 ))}
               </select>
