@@ -13,6 +13,7 @@ import Login from './pages/Login';
 import ReportTypeSelection from './pages/nieuwe-melding';
 import VoiceConversation from './pages/voiceConversation';
 import Overzicht from './pages/Overzicht';
+import ReviewReport from './pages/reviewReport';
 import AdminPanel from './pages/AdminPanel'; // <-- Nieuwe import voor het Admin Paneel
 
 export default function App() {
@@ -33,7 +34,8 @@ export default function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/nieuwe-melding" element={<ReportTypeSelection />} />
           <Route path="/conversatie/:type" element={<VoiceConversation />} />
-          
+          <Route path="/review" element={<ReviewReport />} />
+
           {/* Admin Routes (Extra check voor adminOnly) */}
           <Route 
             path="/overzicht" 
