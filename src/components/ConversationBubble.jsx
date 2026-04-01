@@ -2,6 +2,7 @@ import { ConversationMessage } from '../types.js';
 
 export function ConversationBubble({ message }) {
   const isAssistant = message.role === 'assistant';
+  const containsHTML = /<[^>]*>/.test(message.content);
 
   return (
     <div className={`flex ${isAssistant ? 'justify-start' : 'justify-end'} mb-4`}>
@@ -12,7 +13,14 @@ export function ConversationBubble({ message }) {
             : 'bg-blue-600 text-white rounded-tr-none'
         }`}
       >
-        <p className="text-base leading-relaxed">{message.content}</p>
+        {containsHTML ? (
+          <div
+            className="text-base leading-relaxed"
+            dangerouslySetInnerHTML={{ __html: message.content }}
+          />
+        ) : (
+          <p className="text-base leading-relaxed">{message.content}</p>
+        )}
       </div>
     </div>
   );
