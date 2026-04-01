@@ -1,168 +1,171 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '../components/ui/button';
-import { Card } from '../components/ui/card';
-import { Filter, ArrowLeft, User, Loader2, AlertCircle, Calendar, Wrench } from 'lucide-react';
+import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Button } from './ui/button';
+import { Building2, LogOut, List, LayoutDashboard, ShieldCheck, Menu, X, User } from 'lucide-react';
+import { toast } from 'sonner';
 
-export default function Overzicht() {
+export default function Navbar() {
   const navigate = useNavigate();
-  const [actieveFilter, setActieveFilter] = useState('Alle');
+  const location = useLocation();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const userEmail = localStorage.getItem('userEmail') || 'gebruiker@zorg.nl';
+  const userRoles = JSON.parse(localStorage.getItem('userRoles') || '[]');
+  const isAdmin = userRoles.includes('Admin');
   
-  const [meldingen, setMeldingen] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const userName = userEmail
+    .split('@')[0]
+    .split('.')
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5258';
-
-  useEffect(() => {
-    const fetchMeldingen = async () => {
-      try {
-        const response = await fetch(`${API_URL}/api/meldingen`); 
-        
-        if (!response.ok) {
-          throw new Error('Kon de meldingen niet ophalen van de server.');
-        }
-        
-        const data = await response.json();
-        setMeldingen(data); 
-      } catch (err) {
-        console.error("Fout bij ophalen database:", err);
-        setError("Er is een probleem met de verbinding naar de database.");
-      } finally {
-        setIsLoading(false); 
-      }
-    };
-
-    fetchMeldingen();
-  }, [API_URL]);
-
-  const gefilterdeMeldingen = actieveFilter === 'Alle' 
-    ? meldingen 
-    : meldingen.filter(melding => melding.type === actieveFilter);
-
-  const getTypeStyling = (type) => {
-    switch(type) {
-      case 'Facilitair': return { color: 'text-blue-700', bg: 'bg-blue-100', border: 'bg-blue-500', icon: <Wrench className="h-5 w-5" /> };
-      case 'MIC': return { color: 'text-red-700', bg: 'bg-red-100', border: 'bg-red-500', icon: <AlertCircle className="h-5 w-5" /> };
-      case 'MIM': return { color: 'text-purple-700', bg: 'bg-purple-100', border: 'bg-purple-500', icon: <User className="h-5 w-5" /> };
-      default: return { color: 'text-slate-700', bg: 'bg-slate-100', border: 'bg-slate-400', icon: <AlertCircle className="h-5 w-5" /> };
-    }
+  const handleLogout = () => {
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userRoles');
+    localStorage.removeItem('token');
+    toast.success('Succesvol uitgelogd');
+    navigate('/login');
   };
 
+  const handleNavigation = (path) => {
+    navigate(path);
+    setIsMobileMenuOpen(false);
+  };
+
+  const navItems = [
+    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+  ];
+
+  if (isAdmin) {
+    navItems.push({ name: 'Overzicht', path: '/overzicht', icon: List });
+    navItems.push({ name: 'Admin Paneel', path: '/admin-paneel', icon: ShieldCheck });
+  }
+
   return (
-    <div className="bg-slate-50/50 min-h-screen pb-12">
-      <div className="bg-white border-b border-slate-200 w-full px-6 md:px-10 py-8 shadow-sm mb-6"> {/* Fluid header */}
-        <div className="flex items-center gap-4">
-          <Button variant="outline" size="icon" onClick={() => navigate('/dashboard')} className="shrink-0 rounded-full hover:bg-slate-100">
-            <ArrowLeft className="h-5 w-5 text-slate-600" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-              Meldingen Overzicht
-            </h1>
-            <p className="text-slate-500 font-medium mt-1">Bekijk en filter alle geregistreerde rapportages</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="w-full px-6 md:px-10 space-y-6"> {/* Fluid content */}
-        <div className="bg-white p-2 rounded-2xl shadow-sm border border-slate-200 inline-flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-2 text-slate-500 pl-3 pr-2 border-r border-slate-200">
-            <Filter className="h-4 w-4" />
-            <span className="font-semibold text-sm hidden sm:inline">Filter</span>
-          </div>
-          
-          <div className="flex flex-wrap gap-1">
-            {['Alle', 'Facilitair', 'MIC', 'MIM'].map((filterType) => (
-              <Button
-                key={filterType}
-                variant={actieveFilter === filterType ? 'default' : 'ghost'}
-                onClick={() => setActieveFilter(filterType)}
-                className={`rounded-xl px-6 transition-all duration-200 ${
-                  actieveFilter === filterType 
-                    ? 'shadow-md font-bold' 
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium'
-                }`}
-                size="sm"
-              >
-                {filterType}
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        <div className="grid gap-4 mt-6">
-          {isLoading && (
-            <Card className="p-16 text-center bg-white flex flex-col items-center justify-center text-slate-500 border border-slate-200 rounded-2xl shadow-sm">
-              <Loader2 className="h-10 w-10 animate-spin mb-4 text-primary" />
-              <p className="text-lg font-medium">Meldingen ophalen uit de database...</p>
-            </Card>
-          )}
-
-          {error && !isLoading && (
-            <Card className="p-12 text-center bg-red-50 border border-red-200 text-red-600 rounded-2xl shadow-sm">
-              <AlertCircle className="h-12 w-12 mx-auto mb-4" />
-              <p className="text-lg font-bold">{error}</p>
-              <p className="text-sm mt-2 text-red-500/80 font-medium">Check of de backend applicatie actief is.</p>
-            </Card>
-          )}
-
-          {!isLoading && !error && gefilterdeMeldingen.length === 0 && (
-            <Card className="p-16 text-center bg-white border border-slate-200 rounded-2xl shadow-sm">
-              <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <AlertCircle className="h-10 w-10 text-slate-400" />
+    <nav className="sticky top-0 z-50 bg-primary shadow-lg border-b border-primary-foreground/10">
+      <div className="w-full px-6 md:px-10"> {/* Fluid width with padding */}
+        <div className="flex justify-between h-16">
+          <div className="flex items-center">
+            <div 
+              className="flex-shrink-0 flex items-center cursor-pointer group" 
+              onClick={() => handleNavigation('/dashboard')}
+            >
+              <div className="bg-white/10 p-2 rounded-xl group-hover:bg-white/20 transition-colors">
+                <Building2 className="h-6 w-6 text-primary-foreground" />
               </div>
-              <h3 className="text-xl font-bold text-slate-700">Geen meldingen gevonden</h3>
-              <p className="text-slate-500 font-medium mt-2">Er zijn momenteel geen meldingen in deze categorie.</p>
-            </Card>
-          )}
+              <span className="ml-3 text-xl font-bold text-primary-foreground tracking-tight">SoftZorg</span>
+            </div>
+          </div>
 
-          {!isLoading && !error && gefilterdeMeldingen.map((melding) => {
-            const style = getTypeStyling(melding.type);
-            
-            return (
-              <Card 
-                key={melding.id} 
-                className="overflow-hidden bg-white hover:shadow-md transition-all duration-200 border border-slate-200 rounded-2xl flex flex-col sm:flex-row group"
+          <div className="hidden md:flex md:items-center md:space-x-4">
+            <div className="flex space-x-2 mr-4">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.path;
+                return (
+                  <Button
+                    key={item.path}
+                    variant={isActive ? "secondary" : "ghost"}
+                    className={`flex items-center rounded-xl transition-all ${
+                      isActive 
+                        ? "bg-white text-primary shadow-sm" 
+                        : "text-primary-foreground hover:bg-primary-foreground/10 hover:text-white"
+                    }`}
+                    onClick={() => handleNavigation(item.path)}
+                  >
+                    <Icon className="h-4 w-4 mr-2" />
+                    {item.name}
+                  </Button>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center border-l border-primary-foreground/20 pl-6 space-x-6">
+              <div className="text-right">
+                <p className="text-[10px] font-bold text-primary-foreground/70 uppercase tracking-wider">Ingelogd als</p>
+                <p className="text-sm font-semibold text-primary-foreground flex items-center gap-2">
+                  <User className="h-3 w-3" />
+                  {userName}
+                </p>
+              </div>
+              <Button 
+                variant="destructive" 
+                size="sm"
+                onClick={handleLogout}
+                className="bg-red-500/90 hover:bg-red-600 text-white border-none rounded-xl shadow-sm"
               >
-                <div className={`h-2 sm:h-auto sm:w-3 shrink-0 ${style.border}`} />
-                
-                <div className="p-6 flex-1">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-xl ${style.bg} ${style.color}`}>
-                        {style.icon}
-                      </div>
-                      <div>
-                        <span className={`text-xs font-bold uppercase tracking-wider ${style.color}`}>
-                          {melding.type}
-                        </span>
-                        <h3 className="font-bold text-xl text-slate-900 mt-0.5">{melding.categorie}</h3>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2 text-sm font-medium text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
-                      <Calendar className="h-4 w-4" />
-                      {melding.datum || new Date().toLocaleDateString('nl-NL')}
-                    </div>
-                  </div>
-                  
-                  <p className="text-slate-600 leading-relaxed mb-4 text-[15px]">
-                    {melding.beschrijving}
-                  </p>
+                <LogOut className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Uitloggen</span>
+              </Button>
+            </div>
+          </div>
 
-                  {melding.betrokkene && (
-                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 bg-slate-100 w-fit px-3 py-1.5 rounded-lg border border-slate-200">
-                      <User className="h-4 w-4 text-slate-500" />
-                      <span>Betrokkene: {melding.betrokkene}</span>
-                    </div>
-                  )}
-                </div>
-              </Card>
-            );
-          })}
+          <div className="flex items-center md:hidden">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="text-primary-foreground hover:bg-primary-foreground/10 rounded-xl"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              {isMobileMenuOpen ? (
+                <X className="h-7 w-7" />
+              ) : (
+                <Menu className="h-7 w-7" />
+              )}
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
+
+      {isMobileMenuOpen && (
+        <div className="md:hidden bg-primary border-t border-primary-foreground/10 absolute w-full shadow-2xl transition-all duration-300 ease-in-out">
+          <div className="px-6 pt-4 pb-6 space-y-4"> {/* Fluid width padding */}
+            <div className="flex flex-col space-y-2">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.path;
+                return (
+                  <Button
+                    key={item.path}
+                    variant={isActive ? "secondary" : "ghost"}
+                    className={`flex items-center justify-start w-full rounded-xl h-14 text-base ${
+                      isActive 
+                        ? "bg-white text-primary font-bold shadow-sm" 
+                        : "text-primary-foreground hover:bg-primary-foreground/10"
+                    }`}
+                    onClick={() => handleNavigation(item.path)}
+                  >
+                    <Icon className="h-5 w-5 mr-3" />
+                    {item.name}
+                  </Button>
+                );
+              })}
+            </div>
+
+            <div className="border-t border-primary-foreground/20 pt-4 mt-4">
+              <div className="flex items-center px-2 mb-4">
+                <div className="bg-primary-foreground/10 p-3 rounded-full mr-4">
+                  <User className="h-6 w-6 text-primary-foreground" />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-primary-foreground/70 uppercase">Ingelogd als</p>
+                  <p className="text-lg font-bold text-primary-foreground">{userName}</p>
+                </div>
+              </div>
+              
+              <Button 
+                variant="destructive" 
+                className="w-full justify-start bg-red-500/90 hover:bg-red-600 text-white rounded-xl h-14 text-base"
+                onClick={handleLogout}
+              >
+                <LogOut className="h-5 w-5 mr-3" />
+                Uitloggen
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </nav>
   );
 }

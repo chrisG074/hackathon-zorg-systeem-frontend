@@ -32,8 +32,9 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50/50 pb-12">
-      <div className="bg-white border-b border-slate-200 w-full px-6 md:px-10 py-10 shadow-sm"> {/* Fluid header container */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      {/* Hero / Welcome Banner */}
+      <div className="bg-white border-b border-slate-200 px-6 py-10 shadow-sm">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-primary/10 rounded-2xl">
               <TimeIcon className="h-8 w-8 text-primary" />
@@ -52,7 +53,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="w-full px-6 md:px-10 space-y-10 mt-6"> {/* Fluid content container */}
+      <div className="max-w-7xl mx-auto p-6 space-y-10 mt-6">
+        {/* Night Time Alert */}
         {isNightTime && (
           <Card className="p-0 bg-red-50 border-red-200 shadow-md overflow-hidden rounded-2xl">
             <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap p-6">
@@ -76,11 +78,12 @@ export default function Dashboard() {
           </Card>
         )}
 
+        {/* Main Action Area */}
         <div className="flex justify-center">
           <Button
             size="lg"
             className="group relative overflow-hidden h-32 w-full max-w-2xl text-2xl font-bold bg-gradient-to-r from-primary to-blue-700 hover:from-blue-700 hover:to-primary text-white shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 rounded-3xl"
-            onClick={() => navigate('/nieuwe-melding')} /* Navigates to the fixed SIMO page */
+            onClick={() => navigate('/nieuwe-melding')}
           >
             <div className="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
             <Mic className="h-10 w-10 mr-4 group-hover:scale-110 transition-transform duration-300" />
@@ -88,6 +91,7 @@ export default function Dashboard() {
           </Button>
         </div>
 
+        {/* Quick Selection Cards */}
         <div>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-slate-800">Snelkeuze categorieën</h2>
