@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from './ui/button';
-import { Building2, LogOut, List, LayoutDashboard, Menu, X, User } from 'lucide-react';
+// Let op: Building2 is hier verwijderd uit de imports
+import { LogOut, List, LayoutDashboard, Menu, X, User } from 'lucide-react';
 import { toast } from 'sonner';
+import simoLogo from '../assets/SIMO-logo.png'; // Het nieuwe logo geïmporteerd
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -39,7 +41,6 @@ export default function Navbar() {
 
   if (isAdmin) {
     navItems.push({ name: 'Overzicht', path: '/overzicht', icon: List });
-    // Admin Paneel is hier succesvol verwijderd
   }
 
   return (
@@ -47,16 +48,16 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
+            {/* Hier is het nieuwe logo geplaatst */}
             <div 
-              className="flex-shrink-0 flex items-center cursor-pointer group" 
+              className="flex-shrink-0 flex items-center cursor-pointer group py-2" 
               onClick={() => handleNavigation('/dashboard')}
             >
-              <div className="bg-white/10 p-2 rounded-xl group-hover:bg-white/20 transition-colors">
-                <Building2 className="h-6 w-6 text-primary-foreground" />
-              </div>
-              <span className="ml-3 text-xl font-bold text-primary-foreground tracking-tight hidden sm:block">
-                SoftZorg
-              </span>
+              <img 
+                src={simoLogo} 
+                alt="SIMO Logo" 
+                className="h-9 sm:h-11 w-auto group-hover:opacity-80 transition-opacity drop-shadow-sm" 
+              />
             </div>
           </div>
 
