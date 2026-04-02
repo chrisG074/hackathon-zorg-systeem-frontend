@@ -6,6 +6,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { ConversationBubble } from '../components/ConversationBubble';
 import { VoiceVisualizer } from '../components/VoiceVisualizer';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   ArrowLeft,
   Mic,
@@ -13,6 +14,7 @@ import {
   Keyboard,
   Send,
   Volume2,
+  Sparkles
 } from 'lucide-react';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { toast } from 'sonner';
@@ -25,7 +27,7 @@ export default function VoiceConversation() {
   const [isListening, setIsListening] = useState(false);
   const [useKeyboard, setUseKeyboard] = useState(false);
   const [currentInput, setCurrentInput] = useState('');
-  const [formData, setFormData] = useState({})
+  const [formData, setFormData] = useState({});
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [microphonePermission, setMicrophonePermission] = useState('prompt');
   const [aiLoading, setAiLoading] = useState(false);
@@ -77,7 +79,6 @@ export default function VoiceConversation() {
 
       const fullPrompt = `${typeContext}\nHieronder volgt het gesprek tot nu toe. Gebruik de informatie uit eerdere berichten om te bepalen wat je al weet.\n\nGESPREK:\n${history}\nGebruiker: ${userMessage}\n\nINSTRUCTIE: Scan het bovenstaande gesprek op antwoorden. Stel GEEN vragen over zaken die hierboven al zijn genoemd (zoals namen, tijden of locaties).`;
 
-      // GEWIJZIGD: Gebruik API_URL in plaats van localhost
       const response = await fetch(`${API_URL}/api/Ai/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -253,9 +254,7 @@ export default function VoiceConversation() {
     }
 
     try {
-      // Ensure any previous recognition session is stopped before starting a new one
       recognitionRef.current?.abort();
-      // Small delay to allow proper cleanup
       setTimeout(() => {
         try {
           recognitionRef.current?.start();
@@ -300,20 +299,17 @@ export default function VoiceConversation() {
       },
     ]);
 
-    // Send to AI and wait for response
     const aiResponse = await sendToAi(userInput);
 
     if (aiResponse) {
-      // Check if the form is complete
       if (aiResponse.includes('[COMPLEET]')) {
         const parts = aiResponse.split('[COMPLEET]');
         const jsonString = parts[1].trim();
 
         try {
           const aiData = JSON.parse(jsonString);
-          let mappedData = { ...aiData }; // We nemen de AI data direct over
+          let mappedData = { ...aiData }; 
 
-          // Navigeer naar /review (zorg dat de route exact matcht)
           navigate('/review', { state: { formData: mappedData, type: type } });
           return;
         } catch (e) {
@@ -321,13 +317,11 @@ export default function VoiceConversation() {
         }
       }
 
-      // Add SIMO's response to conversation
       setMessages((prev) => [
         ...prev,
         { role: 'assistant', content: aiResponse, fieldName: null },
       ]);
 
-      // Speak the response
       setTimeout(() => {
         setIsSpeaking(true);
         speak(aiResponse, () => setIsSpeaking(false));
@@ -347,20 +341,20 @@ export default function VoiceConversation() {
           onClick={() => {
             stop();
             navigate('/nieuwe-melding');
-          }}
-          className="text-primary-foreground hover:bg-primary/20 shrink-0"
-          title="Terug"
+          }} 
+          className="rounded-full"
         >
-          <ArrowLeft className="h-6 w-6" />
+          <ArrowLeft className="h-5 w-5 text-slate-600" />
         </Button>
         <div className="flex-1">
-          <h2 className="text-xl font-bold">Nieuwe {displayType} Melding</h2>
-          <p className="text-sm text-primary-foreground/80 hidden sm:block">
-            Simo helpt je met het invullen van de melding
-          </p>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-extrabold text-slate-900 tracking-tight">{displayType} Melding</h2>
+            <div className="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-black rounded-full uppercase">Live Assistent</div>
+          </div>
+          <p className="text-xs text-slate-500 font-medium">Simo luistert naar je verhaal</p>
         </div>
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon"
           onClick={() => {
             if (isSpeaking) {
@@ -374,10 +368,10 @@ export default function VoiceConversation() {
               }
             }
           }}
-          className={`shrink-0 ${isSpeaking ? 'text-accent' : 'text-primary-foreground'}`}
+          className={`rounded-full border-slate-200 ${isSpeaking ? 'bg-primary/5' : ''}`}
           title={isSpeaking ? "Stop afspelen" : "Lees laatste bericht voor"}
         >
-          <Volume2 className={`h-6 w-6 ${isSpeaking ? 'animate-pulse' : ''}`} />
+          <Volume2 className={`h-4 w-4 text-slate-600 ${isSpeaking ? 'animate-pulse text-primary' : ''}`} />
         </Button>
       </div>
 
@@ -394,17 +388,20 @@ export default function VoiceConversation() {
           {messages.map((msg, index) => (
             <ConversationBubble key={index} message={msg} />
           ))}
-          {aiLoading && (
-            <div className="flex justify-start mb-4">
-              <div className="max-w-[80%] rounded-2xl px-5 py-4 bg-gray-200 text-gray-800 rounded-tl-none flex items-center gap-2">
-                <div className="flex gap-1.5">
-                  <div className="w-2.5 h-2.5 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                  <div className="w-2.5 h-2.5 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                  <div className="w-2.5 h-2.5 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                </div>
-              </div>
-            </div>
-          )}
+          
+          <AnimatePresence>
+            {aiLoading && (
+              <motion.div 
+                initial={{ opacity: 0, y: 5 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                exit={{ opacity: 0 }}
+                className="flex items-center gap-3 text-slate-400 font-bold text-sm ml-10 py-4"
+              >
+                <Sparkles className="h-4 w-4 animate-pulse text-primary" />
+                Simo denkt na...
+              </motion.div>
+            )}
+          </AnimatePresence>
           <div ref={messagesEndRef} />
         </div>
       </div>
