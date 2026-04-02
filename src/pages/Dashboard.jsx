@@ -70,7 +70,7 @@ export default function Dashboard() {
       try {
         // Let op: pas de poort (7152) of URL eventueel aan naar hoe jouw backend draait!
         // Als je een proxy in Vite gebruikt, is '/api/meldingen' ook goed.
-        const response = await fetch('https://localhost:7152/api/meldingen'); 
+        const response = await fetch('https://localhost:5258/api/meldingen'); 
         if (response.ok) {
           const data = await response.json();
           // Pak alleen de 3 meest recente meldingen voor het dashboard
