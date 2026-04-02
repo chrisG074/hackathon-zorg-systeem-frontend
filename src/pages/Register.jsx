@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input'; // Toegevoegd voor consistentie
-import { Label } from '../components/ui/label'; // Toegevoegd voor consistentie
+import { Input } from '../components/ui/input'; 
+import { Label } from '../components/ui/label'; 
 import { Card } from '../components/ui/card';
-import { Building2, UserPlus, Mail, Lock, Loader2 } from 'lucide-react';
+import { UserPlus, Mail, Lock, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { motion } from 'motion/react'; // Toegevoegd voor animaties
+import { motion } from 'motion/react';
+import simoLogo from '../assets/SIMO-logo.png'; // Het SIMO logo geïmporteerd
 
 export default function Register() {
   const navigate = useNavigate();
@@ -54,7 +55,7 @@ export default function Register() {
 
   return (
     <div className="min-h-screen bg-slate-50/50 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Subtiele achtergrond decoratie (hetzelfde als inlog) */}
+      {/* Subtiele achtergrond decoratie */}
       <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
       <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-purple-400/5 rounded-full blur-3xl" />
 
@@ -64,14 +65,9 @@ export default function Register() {
         transition={{ duration: 0.4, ease: "easeOut" }}
         className="w-full max-w-md relative z-10"
       >
-        <div className="mb-6 text-center flex flex-col items-center gap-4">
-          <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center shadow-sm border border-slate-100">
-            <Building2 className="h-8 w-8 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">SoftZorg</h1>
-            <p className="text-slate-500 font-medium">Zorg Management Systeem</p>
-          </div>
+        <div className="mb-6 text-center flex flex-col items-center gap-2">
+          <img src={simoLogo} alt="SIMO Logo" className="h-24 w-auto drop-shadow-md" />
+          <p className="text-slate-500 font-medium">Zorg Management Systeem</p>
         </div>
 
         <Card className="w-full p-8 shadow-2xl border-slate-100 rounded-3xl bg-white/80 backdrop-blur-xl">
@@ -136,11 +132,16 @@ export default function Register() {
           <div className="mt-8 pt-6 border-t border-slate-100 text-center text-sm">
             <span className="text-slate-500 font-medium">Al een account? </span>
             <button 
+              type="button"
               onClick={() => navigate('/login')}
               className="text-primary font-bold hover:text-blue-700 transition-colors"
             >
               Log in
             </button>
+          </div>
+
+          <div className="mt-4 text-center text-xs text-slate-400 font-medium">
+            <p>Problemen met inloggen? Neem contact op met IT support.</p>
           </div>
         </Card>
       </motion.div>

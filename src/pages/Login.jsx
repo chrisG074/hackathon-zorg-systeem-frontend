@@ -4,9 +4,10 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card } from '../components/ui/card';
 import { Label } from '../components/ui/label';
-import { Building2, Lock, Mail, AlertCircle, Loader2 } from 'lucide-react';
+import { Lock, Mail, AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { motion } from 'motion/react'; // Toegevoegd voor animaties
+import { motion } from 'motion/react';
+import simoLogo from '../assets/SIMO-logo.png'; // Het SIMO logo geïmporteerd
 
 export default function Login() {
   const navigate = useNavigate();
@@ -62,10 +63,7 @@ export default function Login() {
       >
         <Card className="w-full p-8 shadow-2xl border-slate-100 rounded-3xl bg-white/80 backdrop-blur-xl">
           <div className="flex flex-col items-center mb-8">
-            <div className="bg-primary/10 p-4 rounded-3xl mb-5 shadow-inner">
-              <Building2 className="h-8 w-8 text-primary" />
-            </div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">SIMO</h1>
+            <img src={simoLogo} alt="SIMO Logo" className="h-20 w-auto drop-shadow-md mb-2" />
             <p className="text-slate-500 mt-2 text-center font-medium">Log in op het zorgportaal</p>
           </div>
 
