@@ -38,6 +38,13 @@ export default function VoiceConversation() {
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5258';
 
+  // Helper function to strip HTML tags for text-to-speech
+  const stripHtmlTags = (html) => {
+    const tmp = document.createElement('DIV');
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || '';
+  };
+
   useEffect(() => {
     const checkMicrophonePermission = async () => {
       try {
@@ -209,7 +216,7 @@ export default function VoiceConversation() {
         hasSpokenIntroRef.current = true;
         setTimeout(() => {
           setIsSpeaking(true);
-          speak(introMessage, () => {
+          speak(stripHtmlTags(introMessage), () => {
             setIsSpeaking(false);
           });
         }, 500);
@@ -324,7 +331,7 @@ export default function VoiceConversation() {
 
       setTimeout(() => {
         setIsSpeaking(true);
-        speak(aiResponse, () => setIsSpeaking(false));
+        speak(stripHtmlTags(aiResponse), () => setIsSpeaking(false));
       }, 300);
     }
   };
@@ -364,7 +371,7 @@ export default function VoiceConversation() {
               const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant');
               if (lastAssistantMsg) {
                 setIsSpeaking(true);
-                speak(lastAssistantMsg.content, () => setIsSpeaking(false));
+                speak(stripHtmlTags(lastAssistantMsg.content), () => setIsSpeaking(false));
               }
             }
           }}
