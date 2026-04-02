@@ -194,7 +194,10 @@ export default function VoiceConversation() {
 
   useEffect(() => {
     if (messages.length === 0) {
-      const introMessage = `Hallo! Ik ben SIMO, je AI assistent. Ik zal je helpen met het indienen van je melding voor ${type}. Kun je alsjeblieft specifiek vertellen wat er is gebeurd?`;
+      const typeDisplay = type 
+        ? (type === 'mic' ? 'MIC' : type === 'mim' ? 'MIM' : type.charAt(0).toUpperCase() + type.slice(1))
+        : '';
+      const introMessage = `Hallo! Ik ben SIMO, je AI assistent. Ik zal je helpen met het indienen van je melding voor ${typeDisplay}. Kun je alsjeblieft specifiek vertellen wat er is gebeurd?`;
 
       setMessages([
         {
@@ -335,7 +338,9 @@ export default function VoiceConversation() {
     }
   };
 
-  const displayType = type ? type.charAt(0).toUpperCase() + type.slice(1) : '';
+  const displayType = type 
+    ? (type === 'mic' ? 'MIC' : type === 'mim' ? 'MIM' : type.charAt(0).toUpperCase() + type.slice(1))
+    : '';
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col max-w-3xl mx-auto w-full shadow-xl">
