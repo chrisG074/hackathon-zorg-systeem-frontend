@@ -17,7 +17,6 @@ import {
   Sparkles
 } from 'lucide-react';
 import { Alert, AlertDescription } from '../components/ui/alert';
-import { Card } from '../components/ui/card';
 import { toast } from 'sonner';
 import { useSpeech } from '../hooks/useSpeech';
 
@@ -146,6 +145,7 @@ export default function VoiceConversation() {
     recognitionRef.current = new SpeechRecognition();
     recognitionRef.current.lang = 'nl-NL';
     recognitionRef.current.continuous = false;
+    // Let op: deze event handlers zorgen dat isListening op false gaat zodra er tekst is.
     recognitionRef.current.interimResults = false;
 
     recognitionRef.current.onresult = (event) => {
@@ -334,7 +334,6 @@ export default function VoiceConversation() {
   return (
     <div className="min-h-screen bg-white flex flex-col max-w-4xl mx-auto w-full shadow-2xl overflow-hidden border-x border-slate-100">
       
-      {/* Verbeterde Header */}
       <div className="bg-white/80 backdrop-blur-md border-b p-4 flex items-center gap-4 sticky top-0 z-20">
         <Button 
           variant="ghost" 
@@ -376,7 +375,6 @@ export default function VoiceConversation() {
         </Button>
       </div>
 
-      {/* Originele alert behouden voor als de mic geweigerd is */}
       {microphonePermission === 'denied' && (
         <Alert variant="destructive" className="m-4 border-2 rounded-xl">
           <AlertDescription className="font-medium text-base py-1">
@@ -385,7 +383,6 @@ export default function VoiceConversation() {
         </Alert>
       )}
 
-      {/* Berichtenlijst met meer ruimte */}
       <div className="flex-1 overflow-y-auto p-6 bg-slate-50/30">
         <div className="max-w-2xl mx-auto space-y-2">
           {messages.map((msg, index) => (
@@ -409,51 +406,13 @@ export default function VoiceConversation() {
         </div>
       </div>
 
-      {/* Moderne Floating Input Area */}
+      {/* Floating Input Area met GECORRIGEERDE statussen */}
       <div className="p-6 bg-white border-t border-slate-100 shadow-[0_-10px_40px_rgba(0,0,0,0.03)] shrink-0">
         <div className="max-w-2xl mx-auto space-y-6">
           
           <AnimatePresence mode="wait">
-            {isListening ? (
-              <motion.div 
-                key="listening"
-                initial={{ opacity: 0, scale: 0.9 }} 
-                animate={{ opacity: 1, scale: 1 }} 
-                exit={{ opacity: 0, scale: 0.9 }}
-                className="flex flex-col items-center gap-4"
-              >
-                <VoiceVisualizer isListening={true} />
-                <p className="text-sm font-bold text-primary animate-pulse tracking-wide uppercase">Spreken...</p>
-                {currentInput && (
-                  <div className="w-full p-4 bg-blue-50 rounded-2xl border border-blue-100 text-slate-700 italic text-center">
-                    "{currentInput}"
-                  </div>
-                )}
-                {/* Submit / Stop logica bewaard voor spraakmodus zodat het net zo goed werkt als je origineel */}
-                <div className="flex gap-2">
-                  {currentInput ? (
-                     <Button
-                       size="lg"
-                       onClick={handleSubmitAnswer}
-                       disabled={aiLoading}
-                       className="px-8 rounded-xl bg-green-600 hover:bg-green-700 h-12 shadow-lg"
-                     >
-                       <Send className="h-5 w-5 mr-2" />
-                       Verstuur
-                     </Button>
-                  ) : (
-                     <Button
-                       size="icon"
-                       onClick={stopListening}
-                       variant="destructive"
-                       className="h-12 w-12 rounded-full shadow-lg"
-                     >
-                       <MicOff className="h-5 w-5" />
-                     </Button>
-                  )}
-                </div>
-              </motion.div>
-            ) : useKeyboard ? (
+            {useKeyboard ? (
+              // 1. TYPEN MODUS
               <motion.div 
                 key="keyboard"
                 initial={{ opacity: 0, y: 10 }} 
@@ -485,7 +444,60 @@ export default function VoiceConversation() {
                   )}
                 </Button>
               </motion.div>
+            ) : isListening ? (
+              // 2. LUISTER MODUS (Actief aan het opnemen)
+              <motion.div 
+                key="listening"
+                initial={{ opacity: 0, scale: 0.9 }} 
+                animate={{ opacity: 1, scale: 1 }} 
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="flex flex-col items-center gap-4"
+              >
+                <VoiceVisualizer isListening={true} />
+                <p className="text-sm font-bold text-primary animate-pulse tracking-wide uppercase">Spreken...</p>
+                <Button
+                   size="icon"
+                   onClick={stopListening}
+                   variant="destructive"
+                   className="h-12 w-12 rounded-full shadow-lg mt-2"
+                 >
+                   <MicOff className="h-5 w-5" />
+                 </Button>
+              </motion.div>
+            ) : currentInput ? (
+              // 3. SPRAAK HERKEND MODUS (Klaar om te verzenden)
+              <motion.div 
+                key="has-text"
+                initial={{ opacity: 0, y: 10 }} 
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className="flex flex-col gap-4 w-full"
+              >
+                <div className="w-full p-4 bg-blue-50/50 rounded-2xl border border-blue-100 text-slate-700 italic text-center shadow-inner">
+                  "{currentInput}"
+                </div>
+                <div className="flex gap-3 justify-center">
+                   <Button
+                     onClick={startListening}
+                     disabled={aiLoading}
+                     variant="outline"
+                     className="px-6 rounded-xl h-12 shadow-sm border-slate-200"
+                   >
+                     <Mic className="h-4 w-4 mr-2" />
+                     Opnieuw inspreken
+                   </Button>
+                   <Button
+                     onClick={handleSubmitAnswer}
+                     disabled={aiLoading}
+                     className="px-8 rounded-xl bg-green-600 hover:bg-green-700 h-12 shadow-lg"
+                   >
+                     <Send className="h-5 w-5 mr-2" />
+                     Verstuur
+                   </Button>
+                </div>
+              </motion.div>
             ) : (
+              // 4. IDLE MODUS (Wachten tot de gebruiker wil praten)
               <motion.div 
                 key="idle"
                 initial={{ opacity: 0 }} 
@@ -515,7 +527,7 @@ export default function VoiceConversation() {
                 setUseKeyboard(!useKeyboard);
                 setCurrentInput('');
               }}
-              className="text-slate-400 hover:text-primary font-bold text-xs uppercase tracking-widest"
+              className="text-slate-400 hover:text-primary font-bold text-xs uppercase tracking-widest mt-2"
             >
               {useKeyboard ? <><Mic className="h-4 w-4 mr-2" /> Liever Spreken</> : <><Keyboard className="h-4 w-4 mr-2" /> Liever Typen</>}
             </Button>
