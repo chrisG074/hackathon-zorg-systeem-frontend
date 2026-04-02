@@ -275,6 +275,10 @@ export default function VoiceConversation() {
     recognitionRef.current?.stop();
   };
 
+  const stripHtmlTags = (html) => {
+    return html.replace(/<[^>]*>/g, '');
+  };
+
   const handleSubmitAnswer = async () => {
     if (!currentInput.trim() || aiLoading) return;
 
@@ -317,14 +321,16 @@ export default function VoiceConversation() {
         }
       }
 
+      const cleanedResponse = stripHtmlTags(aiResponse);
+
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: aiResponse, fieldName: null },
+        { role: 'assistant', content: cleanedResponse, fieldName: null },
       ]);
 
       setTimeout(() => {
         setIsSpeaking(true);
-        speak(aiResponse, () => setIsSpeaking(false));
+        speak(cleanedResponse, () => setIsSpeaking(false));
       }, 300);
     }
   };
