@@ -473,9 +473,12 @@ export default function VoiceConversation() {
                 exit={{ opacity: 0, y: 10 }}
                 className="flex flex-col gap-4 w-full"
               >
-                <div className="w-full p-4 bg-blue-50/50 rounded-2xl border border-blue-100 text-slate-700 italic text-center shadow-inner">
-                  "{currentInput}"
-                </div>
+                <textarea
+                  value={currentInput}
+                  onChange={(e) => setCurrentInput(e.target.value)}
+                  className="w-full p-4 bg-white rounded-2xl border-2 border-blue-300 text-slate-700 resize-none focus:outline-none focus:border-blue-500 transition-colors shadow-md"
+                  rows="4"
+                />
                 <div className="flex gap-3 justify-center">
                    <Button
                      onClick={startListening}
