@@ -1,19 +1,53 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
-import { Mic, Wrench, AlertCircle, User, Phone, ArrowRight, Sun, Moon, Sunrise, Sunset } from 'lucide-react';
+import { 
+  Mic, Wrench, AlertCircle, User, Phone, ArrowRight, 
+  Sun, Moon, Sunrise, Sunset, Clock, Activity 
+} from 'lucide-react';
 import { useState, useEffect } from 'react';
+
+// Helper functie om datum om te zetten naar "x tijd geleden"
+const timeAgo = (dateString) => {
+  if (!dateString) return 'Onbekend';
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now - date) / 1000);
+  
+  if (diffInSeconds < 60) return 'Zojuist';
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} min geleden`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} uur geleden`;
+  if (diffInSeconds < 172800) return 'Gisteren';
+  return `${Math.floor(diffInSeconds / 86400)} dagen geleden`;
+};
+
+// Helper functie voor de juiste styling en iconen per type
+const getTypeStyles = (type) => {
+  switch (type?.toLowerCase()) {
+    case 'facilitair':
+      return { icon: Wrench, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' };
+    case 'mic':
+      return { icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200' };
+    case 'mim':
+      return { icon: User, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200' };
+    default:
+      return { icon: Activity, color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200' };
+  }
+};
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [greeting, setGreeting] = useState('');
   const [TimeIcon, setTimeIcon] = useState(Sun);
+  const [recenteMeldingen, setRecenteMeldingen] = useState([]);
+  const [loading, setLoading] = useState(true);
   
   const currentHour = new Date().getHours();
   const isNightTime = currentHour >= 23 || currentHour < 7;
   const userEmail = localStorage.getItem('userEmail') || 'gebruiker@zorg.nl';
   const userName = userEmail.split('@')[0].charAt(0).toUpperCase() + userEmail.split('@')[0].slice(1);
 
+  // Begroeting effect
   useEffect(() => {
     if (currentHour >= 6 && currentHour < 12) {
       setGreeting('Goedemorgen');
@@ -29,6 +63,28 @@ export default function Dashboard() {
       setTimeIcon(Moon);
     }
   }, [currentHour]);
+
+  // Meldingen ophalen effect
+  useEffect(() => {
+    const fetchMeldingen = async () => {
+      try {
+        // Let op: pas de poort (7152) of URL eventueel aan naar hoe jouw backend draait!
+        // Als je een proxy in Vite gebruikt, is '/api/meldingen' ook goed.
+        const response = await fetch('https://localhost:7152/api/meldingen'); 
+        if (response.ok) {
+          const data = await response.json();
+          // Pak alleen de 3 meest recente meldingen voor het dashboard
+          setRecenteMeldingen(data.slice(0, 3));
+        }
+      } catch (error) {
+        console.error('Fout bij het ophalen van recente meldingen:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMeldingen();
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50/50 pb-12">
@@ -149,6 +205,63 @@ export default function Dashboard() {
                 <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-slate-300 group-hover:text-purple-600 transition-colors mt-2" />
               </div>
             </Card>
+          </div>
+        </div>
+
+        {/* RECENTE MELDINGEN SECTIE */}
+        <div>
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <h2 className="text-lg sm:text-xl font-bold text-slate-800 flex items-center gap-2">
+              <Activity className="h-5 w-5 text-primary" />
+              Recente meldingen
+            </h2>
+            <Button variant="ghost" className="text-sm font-medium text-primary hover:bg-primary/5" onClick={() => navigate('/overzicht')}>
+              Bekijk alles
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="space-y-3">
+            {loading ? (
+              <div className="animate-pulse space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-20 bg-slate-200 rounded-xl w-full"></div>
+                ))}
+              </div>
+            ) : recenteMeldingen.length > 0 ? (
+              recenteMeldingen.map((melding) => {
+                const style = getTypeStyles(melding.type);
+                const TypeIcon = style.icon;
+
+                return (
+                  <Card key={melding.id} className="p-4 hover:shadow-md transition-shadow cursor-pointer bg-white rounded-xl border border-slate-200" onClick={() => navigate('/overzicht')}>
+                    <div className="flex items-center gap-4">
+                      <div className={`p-3 rounded-lg shrink-0 ${style.bg}`}>
+                        <TypeIcon className={`h-6 w-6 ${style.color}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <h3 className="font-bold text-slate-900 truncate">
+                            {melding.categorie || 'Onbekende categorie'}
+                          </h3>
+                          <span className="flex items-center gap-1 text-xs font-medium text-slate-500 whitespace-nowrap bg-slate-100 px-2 py-1 rounded-md">
+                            <Clock className="h-3 w-3" />
+                            {timeAgo(melding.datum)}
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-600 truncate">
+                          {melding.beschrijving || 'Geen beschrijving opgegeven.'}
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })
+            ) : (
+              <Card className="p-8 text-center bg-slate-50 border-dashed border-2 border-slate-200">
+                <p className="text-slate-500">Er zijn nog geen recente meldingen gevonden.</p>
+              </Card>
+            )}
           </div>
         </div>
       </div>
